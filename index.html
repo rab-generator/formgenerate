@@ -52,19 +52,29 @@
             padding: 4px 8px; margin-bottom: 4px; border-radius: 0 4px 4px 0;
         }
 
-        /* Input menyatu dengan kertas tanpa shadow/placeholder */
+        /* Input menyatu dengan kertas & presisi pixel */
         .paper-input {
-            border: none; border-bottom: 1px dotted #555; background: #f8fbff;
-            font-family: inherit; font-size: inherit; color: #000; padding: 1px 4px;
-            outline: none; box-shadow: none !important;
+            border: none; border-bottom: 1px solid #9ec5fe; background: #f4f9ff;
+            font-family: 'Times New Roman', Times, serif; font-size: inherit; color: #000;
+            padding: 0 2px; outline: none; box-shadow: none !important;
+            max-width: 100%; vertical-align: baseline;
         }
-        .paper-input:focus { background: #e8f4fd; border-bottom: 1px solid #0d6efd; }
+        .paper-input:focus { background: #e8f4fd; border-bottom: 1.5px solid #0d6efd; }
+        .print-text { display: none; }
+
         .paper-textarea {
-            width: 100%; border: 1px dashed #999; background: #f8fbff;
+            width: 100%; border: 1px dashed #9ec5fe; background: #f4f9ff;
             font-family: inherit; font-size: inherit; color: #000; padding: 5px 8px;
             resize: vertical; box-shadow: none !important;
         }
         .paper-textarea:focus { background: #e8f4fd; border-color: #0d6efd; outline: none; }
+
+        /* Pengukur lebar teks presisi Times New Roman */
+        #text_width_ruler {
+            position: absolute; visibility: hidden; white-space: pre;
+            font-family: 'Times New Roman', Times, serif; font-size: 12pt;
+            padding: 0; margin: 0;
+        }
 
         /* Tabel Dokumen & Kolom Resizable */
         .doc-table { width: 100%; border-collapse: collapse; margin: 8px 0 12px 0; font-size: 10pt; table-layout: auto; }
@@ -102,15 +112,20 @@
         }
         .foto-preview img { width: 100%; height: 100%; object-fit: contain; }
 
-        /* Mode Cetak / PDF */
+        /* Mode Cetak / PDF: Input diganti teks murni agar tanda baca menempel 100% rapat */
         @media print {
             body { background: #fff !important; }
-            .no-print, .hint-guide, .hint-block, .btn-add-row, .btn-del-row, input[type="file"], .foto-controls {
+            .no-print, .hint-guide, .hint-block, .btn-add-row, .btn-del-row, input[type="file"], .foto-controls, .paper-input {
                 display: none !important;
+            }
+            .print-text {
+                display: inline !important;
+                font-family: inherit;
+                font-size: inherit;
+                color: #000;
             }
             .col-lg-9 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
             .paper-sheet { box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
-            .paper-input { background: transparent !important; border-bottom: 1px dotted #000 !important; }
             .paper-textarea { background: transparent !important; border: none !important; padding: 0 !important; resize: none !important; }
             .th-resizable { resize: none !important; overflow: visible !important; }
             .table-responsive { overflow: visible !important; }
@@ -122,6 +137,8 @@
     <style id="dynamic_print_orientation"></style>
 </head>
 <body>
+
+<span id="text_width_ruler"></span>
 
 <div class="topbar shadow-sm no-print">
     <div class="container-fluid d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -238,14 +255,14 @@
     ];
 
     let activeFormId = 'f1';
-    let store = JSON.parse(localStorage.getItem('rtku_13forms_v3') || localStorage.getItem('rtku_13forms_v2') || '{}');
+    let store = JSON.parse(localStorage.getItem('rtku_13forms_v5') || localStorage.getItem('rtku_13forms_v4') || localStorage.getItem('rtku_13forms_v3') || localStorage.getItem('rtku_13forms_v2') || '{}');
     if (!store.global) {
         store.global = { rt: '', desa: '', alamat: '', kec: '', tempat: 'Tenggarong', ketua: '', sekretaris: '', bendahara: '' };
     }
     if (!store.forms) store.forms = {};
 
     function saveStore() {
-        localStorage.setItem('rtku_13forms_v3', JSON.stringify(store));
+        localStorage.setItem('rtku_13forms_v5', JSON.stringify(store));
         updateChecklistUI();
     }
 
@@ -263,6 +280,14 @@
         return getF(fid)[key] !== undefined ? getF(fid)[key] : def;
     }
 
+    function escapeHtml(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function syncGlobal() {
         store.global.rt = document.getElementById('g_rt').value;
         store.global.desa = document.getElementById('g_desa').value;
@@ -274,33 +299,53 @@
         store.global.bendahara = document.getElementById('g_bendahara').value;
         saveStore();
 
-        document.querySelectorAll('.bind-rt').forEach(el => el.textContent = store.global.rt || '....');
-        document.querySelectorAll('.bind-desa').forEach(el => el.textContent = store.global.desa || '................');
-        document.querySelectorAll('.bind-alamat').forEach(el => el.textContent = store.global.alamat || '........................................');
-        document.querySelectorAll('.bind-kec').forEach(el => el.textContent = store.global.kec || '................');
+        document.querySelectorAll('.bind-rt').forEach(el => el.textContent = store.global.rt || '___');
+        document.querySelectorAll('.bind-desa').forEach(el => el.textContent = store.global.desa || '________');
+        document.querySelectorAll('.bind-alamat').forEach(el => el.textContent = store.global.alamat || '________________');
+        document.querySelectorAll('.bind-kec').forEach(el => el.textContent = store.global.kec || '________');
         document.querySelectorAll('.bind-tempat').forEach(el => el.textContent = store.global.tempat || 'Tenggarong');
-        document.querySelectorAll('.bind-ketua').forEach(el => el.textContent = store.global.ketua || '....................................');
-        document.querySelectorAll('.bind-sekretaris').forEach(el => el.textContent = store.global.sekretaris || '....................................');
-        document.querySelectorAll('.bind-bendahara').forEach(el => el.textContent = store.global.bendahara || '....................................');
+        document.querySelectorAll('.bind-ketua').forEach(el => el.textContent = store.global.ketua || '________________');
+        document.querySelectorAll('.bind-sekretaris').forEach(el => el.textContent = store.global.sekretaris || '________________');
+        document.querySelectorAll('.bind-bendahara').forEach(el => el.textContent = store.global.bendahara || '________________');
     }
 
     function renderKopHTML() {
         const g = store.global;
         return `
             <div class="kop-surat">
-                <h4>PENGURUS RT <span class="bind-rt">${g.rt || '....'}</span></h4>
-                <p>Alamat <span class="bind-alamat">${g.alamat || '........................................'}</span> Kecamatan <span class="bind-kec">${g.kec || '................'}</span> Kabupaten Kutai Kartanegara</p>
+                <h4>PENGURUS RT <span class="bind-rt">${g.rt || '___'}</span></h4>
+                <p>Alamat <span class="bind-alamat">${g.alamat || '________________'}</span> Kecamatan <span class="bind-kec">${g.kec || '________'}</span> Kabupaten Kutai Kartanegara</p>
             </div>
         `;
     }
 
-    function inp(fid, key, width = '220px', hintText = '') {
-        const v = String(getVal(fid, key, '')).replace(/"/g, '&quot;');
-        const hintHtml = hintText ? `<span class="hint-guide no-print">${hintText}</span>` : '';
-        return `<input type="text" class="paper-input" style="width:${width}" value="${v}" oninput="setVal('${fid}','${key}',this.value)">${hintHtml}`;
+    // Pengukur lebar pixel asli font Times New Roman agar kotak input rapat tanpa sisa spasi
+    function measureTextPx(text, minPx = 60) {
+        const ruler = document.getElementById('text_width_ruler');
+        if (!ruler) return minPx + 'px';
+        ruler.textContent = text || '';
+        const w = ruler.offsetWidth;
+        if (!text || text.length === 0) return minPx + 'px';
+        return Math.max(24, w + 8) + 'px';
     }
 
-    function txt(fid, key, rows = 3, hintText = '') {
+    function syncInlineInput(el, minPx = 60) {
+        el.style.width = measureTextPx(el.value, minPx);
+        const span = el.nextElementSibling;
+        if (span && span.classList.contains('print-text')) {
+            span.textContent = el.value;
+        }
+    }
+
+    function inp(fid, key, minCh = 10, hintText = '') {
+        const raw = String(getVal(fid, key, ''));
+        const v = escapeHtml(raw);
+        const minPx = minCh * 7;
+        const hintHtml = hintText ? `<span class="hint-guide no-print">${hintText}</span>` : '';
+        return `<input type="text" class="paper-input" data-minpx="${minPx}" style="width:${minPx}px" value="${v}" oninput="syncInlineInput(this,${minPx}); setVal('${fid}','${key}',this.value)"><span class="print-text">${v}</span>${hintHtml}`;
+    }
+
+    function txt(fid, key, rows = 2, hintText = '') {
         const v = getVal(fid, key, '');
         const hintHtml = hintText ? `<div class="hint-block no-print"><i class="fas fa-info-circle me-1"></i>${hintText}</div>` : '';
         return `${hintHtml}<textarea class="paper-textarea" rows="${rows}" oninput="autoGrow(this); setVal('${fid}','${key}',this.value)">${v}</textarea>`;
@@ -311,8 +356,19 @@
         el.style.height = (el.scrollHeight) + 'px';
     }
 
-    function autoGrowAllTextareas() {
+    function adjustAllInputsAndTextareas() {
         document.querySelectorAll('textarea').forEach(ta => autoGrow(ta));
+        document.querySelectorAll('.paper-input').forEach(ip => {
+            if (ip.style.width !== '100%') {
+                const m = parseInt(ip.getAttribute('data-minpx') || '60');
+                syncInlineInput(ip, m);
+            } else {
+                const span = ip.nextElementSibling;
+                if (span && span.classList.contains('print-text')) {
+                    span.textContent = ip.value;
+                }
+            }
+        });
     }
 
     function isFormCompleted(fid) {
@@ -375,7 +431,7 @@
         activeFormId = fid;
         renderFormCanvas();
         updateChecklistUI();
-        setTimeout(autoGrowAllTextareas, 30);
+        setTimeout(adjustAllInputsAndTextareas, 25);
     }
 
     function addArrayItem(fid, listKey, templateObj) {
@@ -384,7 +440,11 @@
         d[listKey].push({ ...templateObj });
         saveStore();
         renderFormCanvas();
-        setTimeout(autoGrowAllTextareas, 20);
+        setTimeout(adjustAllInputsAndTextareas, 20);
+    }
+
+    function addTableRow(fid, listKey, templateObj) {
+        addArrayItem(fid, listKey, templateObj);
     }
 
     function delArrayItem(fid, listKey, idx) {
@@ -393,20 +453,17 @@
             d[listKey].splice(idx, 1);
             saveStore();
             renderFormCanvas();
-            setTimeout(autoGrowAllTextareas, 20);
+            setTimeout(adjustAllInputsAndTextareas, 20);
         }
     }
-    function addTableRow(fid, listKey, templateObj) {
-        addArrayItem(fid, listKey, templateObj);
-    }
-    
+
     function delTableRow(fid, listKey, idx) {
         const d = getF(fid);
         if (Array.isArray(d[listKey])) {
             d[listKey].splice(idx, 1);
             saveStore();
             renderFormCanvas();
-            setTimeout(autoGrowAllTextareas, 20);
+            setTimeout(adjustAllInputsAndTextareas, 20);
         }
     }
 
@@ -429,8 +486,8 @@
                 <td width="150">${i === 0 ? 'Narasumber' : ''}</td>
                 <td width="15">${i === 0 ? ':' : ''}</td>
                 <td>
-                    ${i + 1}. <input type="text" class="paper-input" style="width:210px" value="${ns.nama || ''}" oninput="updateRowField('${fid}','${listKey}',${i},'nama',this.value)">
-                    dari <input type="text" class="paper-input" style="width:170px" value="${ns.asal || ''}" oninput="updateRowField('${fid}','${listKey}',${i},'asal',this.value)">
+                    ${i + 1}. <input type="text" class="paper-input" data-minpx="100" style="width:100px" value="${escapeHtml(ns.nama)}" oninput="syncInlineInput(this,100); updateRowField('${fid}','${listKey}',${i},'nama',this.value)"><span class="print-text">${escapeHtml(ns.nama)}</span>
+                    dari <input type="text" class="paper-input" data-minpx="90" style="width:90px" value="${escapeHtml(ns.asal)}" oninput="syncInlineInput(this,90); updateRowField('${fid}','${listKey}',${i},'asal',this.value)"><span class="print-text">${escapeHtml(ns.asal)}</span>
                     ${i === 0
                         ? `<button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 ms-1 btn-add-row" onclick="addArrayItem('${fid}','${listKey}',{nama:'',asal:''})">+ Narasumber</button>`
                         : `<button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 ms-1 btn-del-row" onclick="delArrayItem('${fid}','${listKey}',${i})">×</button>`
@@ -586,6 +643,7 @@
             d.slots[idx].img = e.target.result;
             saveStore();
             renderFormCanvas();
+            setTimeout(adjustAllInputsAndTextareas, 20);
         };
         reader.readAsDataURL(file);
     }
@@ -596,6 +654,7 @@
             d.slots[idx].img = '';
             saveStore();
             renderFormCanvas();
+            setTimeout(adjustAllInputsAndTextareas, 20);
         }
     }
 
@@ -636,8 +695,8 @@
             const ythHtml = d.yth_list.map((val, i) => `
                 <div style="${i > 0 ? 'padding-left:34px;' : ''} margin-bottom:2px;">
                     ${i === 0 ? 'Yth. ' : ''}${i + 1}.
-                    <input type="text" class="paper-input" style="width:320px" value="${String(val || '').replace(/"/g, '&quot;')}"
-                        oninput="getF('f1').yth_list[${i}]=this.value; saveStore();">
+                    <input type="text" class="paper-input" data-minpx="110" style="width:110px" value="${escapeHtml(val)}"
+                        oninput="syncInlineInput(this,110); getF('f1').yth_list[${i}]=this.value; saveStore();"><span class="print-text">${escapeHtml(val)}</span>
                     ${i === 0
                         ? `<button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 ms-1 btn-add-row" onclick="addArrayItem('f1','yth_list','')">+ Tambah Tujuan</button>`
                         : `<button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 ms-1 btn-del-row" onclick="delArrayItem('f1','yth_list',${i})">×</button>`
@@ -647,11 +706,11 @@
 
             c.innerHTML = `
                 ${renderKopHTML()}
-                <div class="text-end mb-3"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f1', 'tgl_surat', '160px', 'Tanggal surat')}</div>
+                <div class="text-end mb-3"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f1', 'tgl_surat', 14, 'Tanggal surat')}</div>
                 <table style="width:100%; margin-bottom:14px;">
-                    <tr><td width="90">Nomor</td><td width="15">:</td><td>${inp('f1', 'nomor', '250px', 'Contoh: 001/RT-01/2026')}</td></tr>
-                    <tr><td>Sifat</td><td>:</td><td>${inp('f1', 'sifat', '250px', 'Contoh: Penting')}</td></tr>
-                    <tr><td>Lampiran</td><td>:</td><td>${inp('f1', 'lampiran', '250px', 'Contoh: -')}</td></tr>
+                    <tr><td width="90">Nomor</td><td width="15">:</td><td>${inp('f1', 'nomor', 16, 'Contoh: 001/RT-01/2026')}</td></tr>
+                    <tr><td>Sifat</td><td>:</td><td>${inp('f1', 'sifat', 10, 'Contoh: Penting')}</td></tr>
+                    <tr><td>Lampiran</td><td>:</td><td>${inp('f1', 'lampiran', 8, 'Contoh: -')}</td></tr>
                     <tr><td>Hal</td><td>:</td><td><strong>Undangan</strong></td></tr>
                 </table>
                 <div class="mb-3">
@@ -659,21 +718,21 @@
                     <div class="mt-1">di - <br><strong style="padding-left:20px;" class="bind-tempat">${g.tempat || 'Tenggarong'}</strong></div>
                 </div>
                 <p style="text-align:justify;">
-                    Berdasarkan/Dalam rangka ${inp('f1', 'dasar', '420px', 'Dasar/tujuan kegiatan rapat')}, maka dengan ini kami mengundang Saudara/Bapak/Ibu untuk hadir pada:
+                    Berdasarkan/Dalam rangka ${inp('f1', 'dasar', 20, 'Dasar/tujuan kegiatan rapat')}, maka dengan ini kami mengundang Saudara/Bapak/Ibu untuk hadir pada:
                 </p>
                 <table style="width:100%; margin: 12px 0 16px 24px;">
-                    <tr><td width="110">Hari</td><td width="15">:</td><td>${inp('f1', 'hari', '240px')}</td></tr>
-                    <tr><td>Tanggal</td><td>:</td><td>${inp('f1', 'tanggal', '240px')}</td></tr>
-                    <tr><td>Acara</td><td>:</td><td>${inp('f1', 'acara', '380px')}</td></tr>
-                    <tr><td>Tempat</td><td>:</td><td>${inp('f1', 'tempat', '380px')}</td></tr>
+                    <tr><td width="110">Hari</td><td width="15">:</td><td>${inp('f1', 'hari', 12)}</td></tr>
+                    <tr><td>Tanggal</td><td>:</td><td>${inp('f1', 'tanggal', 15)}</td></tr>
+                    <tr><td>Acara</td><td>:</td><td>${inp('f1', 'acara', 22)}</td></tr>
+                    <tr><td>Tempat</td><td>:</td><td>${inp('f1', 'tempat', 22)}</td></tr>
                 </table>
                 <p>Demikian disampaikan untuk dapat dimaklumi, atas kehadirannya diucapkan terima kasih.</p>
                 <div class="row mt-4">
                     <div class="col-6"></div>
                     <div class="col-6 text-center">
-                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '___'}</span></div>
                         <div style="height:65px;"></div>
-                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                        <div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div>
                     </div>
                 </div>
             `;
@@ -684,42 +743,42 @@
                     <div>PROGRAM RT-KU TERBAIK</div>
                 </div>
                 <p style="text-align:justify;">
-                    Dalam rangka pelaksanaan Program RT-Ku Terbaik Tahun Anggaran ${inp('f2', 'ta', '80px', 'Tahun')}, di Desa/Kelurahan <strong class="bind-desa">${g.desa || '................'}</strong> Kecamatan <strong class="bind-kec">${g.kec || '................'}</strong> Kabupaten Kutai Kartanegara maka pada:
+                    Dalam rangka pelaksanaan Program RT-Ku Terbaik Tahun Anggaran ${inp('f2', 'ta', 5, 'Tahun')}, di Desa/Kelurahan <strong class="bind-desa">${g.desa || '________'}</strong> Kecamatan <strong class="bind-kec">${g.kec || '________'}</strong> Kabupaten Kutai Kartanegara maka pada:
                 </p>
                 <table style="width:100%; margin: 10px 0 12px 24px;">
-                    <tr><td width="110">Hari</td><td width="15">:</td><td>${inp('f2', 'hari', '250px')}</td></tr>
-                    <tr><td>Tanggal</td><td>:</td><td>${inp('f2', 'tanggal', '250px')}</td></tr>
-                    <tr><td>Acara</td><td>:</td><td>${inp('f2', 'acara', '380px')}</td></tr>
-                    <tr><td>Tempat</td><td>:</td><td>${inp('f2', 'tempat', '380px')}</td></tr>
+                    <tr><td width="110">Hari</td><td width="15">:</td><td>${inp('f2', 'hari', 12)}</td></tr>
+                    <tr><td>Tanggal</td><td>:</td><td>${inp('f2', 'tanggal', 15)}</td></tr>
+                    <tr><td>Acara</td><td>:</td><td>${inp('f2', 'acara', 22)}</td></tr>
+                    <tr><td>Tempat</td><td>:</td><td>${inp('f2', 'tempat', 22)}</td></tr>
                 </table>
                 <p style="text-align:justify;">
-                    Telah diselenggarakan Pertemuan/Musyawarah RT <strong class="bind-rt">${g.rt || '....'}</strong> Program RT-Ku Terbaik yang dihadiri oleh tokoh masyarakat, wakil masyarakat RT dan unsur lainnya sebagaimana tercantum dalam lampiran daftar hadir.
+                    Telah diselenggarakan Pertemuan/Musyawarah RT <strong class="bind-rt">${g.rt || '___'}</strong> Program RT-Ku Terbaik yang dihadiri oleh tokoh masyarakat, wakil masyarakat RT dan unsur lainnya sebagaimana tercantum dalam lampiran daftar hadir.
                 </p>
                 <p class="mb-1">Materi atau topik yang dibahas dalam Forum ini serta yang bertindak selaku pimpinan rapat atau narasumber adalah:</p>
                 <div class="fw-bold">A. Materi atau Topik</div>
-                ${txt('f2', 'materi', 3, 'Uraikan materi atau topik yang dibahas dalam musyawarah')}
+                ${txt('f2', 'materi', 2, 'Uraikan materi atau topik yang dibahas dalam musyawarah')}
                 <div class="fw-bold mt-2">B. Unsur Pimpinan Rapat atau Narasumber</div>
                 <table style="width:100%; margin-bottom:10px;">
-                    <tr><td width="150">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f2', 'pimpinan', '210px')} dari ${inp('f2', 'pimpinan_asal', '170px')}</td></tr>
-                    <tr><td>Sekretaris/Notulis</td><td>:</td><td>${inp('f2', 'notulis', '210px')} dari ${inp('f2', 'notulis_asal', '170px')}</td></tr>
+                    <tr><td width="150">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f2', 'pimpinan', 14)} dari ${inp('f2', 'pimpinan_asal', 12)}</td></tr>
+                    <tr><td>Sekretaris/Notulis</td><td>:</td><td>${inp('f2', 'notulis', 14)} dari ${inp('f2', 'notulis_asal', 12)}</td></tr>
                     ${renderNarasumberDynamic('f2', 'narasumber_list')}
                 </table>
                 <p class="mb-1">Setelah dilakukan pembahasan dan diskusi terhadap materi atau topik di atas, selanjutnya seluruh peserta memutuskan dan menyepakati beberapa hal yang berketetapan menjadi keputusan akhir dari pertemuan/musyawarah yaitu:</p>
-                ${txt('f2', 'keputusan', 4, 'Uraikan poin-poin keputusan akhir musyawarah')}
+                ${txt('f2', 'keputusan', 3, 'Uraikan poin-poin keputusan akhir musyawarah')}
                 <p class="mt-2">Demikian Berita Acara Musyawarah ini dibuat dan disahkan dengan penuh tanggung jawab agar dapat dipergunakan sebagaimana mestinya dalam rangka Program RT-Ku Terbaik.</p>
-                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f2', 'tgl_ttd', '170px')}</div>
+                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f2', 'tgl_ttd', 14)}</div>
                 <div class="row text-center mt-3">
                     <div class="col-4">
                         <div>Ketua RT</div><div style="height:55px;"></div>
-                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................'}</span> )</div>
+                        <div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div>
                     </div>
                     <div class="col-4">
                         <div>Sekretaris RT</div><div style="height:55px;"></div>
-                        <div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '....................'}</span> )</div>
+                        <div class="fw-bold">(<span class="bind-sekretaris">${g.sekretaris || '________________'}</span>)</div>
                     </div>
                     <div class="col-4">
                         <div>Perwakilan Warga / Tokoh Masyarakat</div><div style="height:55px;"></div>
-                        <div class="fw-bold">( ${inp('f2', 'tokoh_ttd', '150px')} )</div>
+                        <div class="fw-bold">(${inp('f2', 'tokoh_ttd', 12)})</div>
                     </div>
                 </div>
             `;
@@ -727,25 +786,25 @@
             c.innerHTML = `
                 ${renderKopHTML()}
                 <div class="doc-title">
-                    <div>DAFTAR HADIR ${inp('f3', 'judul_acara', '320px', 'Nama kegiatan/rapat')}</div>
+                    <div>DAFTAR HADIR ${inp('f3', 'judul_acara', 18, 'Nama kegiatan/rapat')}</div>
                     <div>PROGRAM RT-KU TERBAIK TA 2026</div>
                 </div>
                 <table style="width:100%; margin-bottom:10px;">
-                    <tr><td width="160">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
-                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
-                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
-                    <tr><td>Nama Rapat</td><td>:</td><td>${inp('f3', 'nama_rapat', '380px')}</td></tr>
-                    <tr><td>Tanggal Bulan Tahun</td><td>:</td><td>${inp('f3', 'tgl_rapat', '220px')}</td></tr>
+                    <tr><td width="160">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '___'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '________'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '________'}</strong></td></tr>
+                    <tr><td>Nama Rapat</td><td>:</td><td>${inp('f3', 'nama_rapat', 22)}</td></tr>
+                    <tr><td>Tanggal Bulan Tahun</td><td>:</td><td>${inp('f3', 'tgl_rapat', 15)}</td></tr>
                 </table>
                 <div class="hint-block no-print"><i class="fas fa-info-circle me-1"></i>Kolom Nama, Jenis Kelamin, Jabatan, dan Alamat sengaja dikosongkan tanpa pilihan agar dapat dicetak kosong untuk diisi pulpen maupun diketik langsung.</div>
                 ${renderZigZagSignatureTable('f3', 'rows', true)}
                 <div class="row mt-3">
                     <div class="col-7"></div>
                     <div class="col-5 text-center">
-                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f3', 'tgl_ttd', '150px')}</div>
-                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f3', 'tgl_ttd', 14)}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '___'}</span></div>
                         <div style="height:55px;"></div>
-                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                        <div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div>
                     </div>
                 </div>
             `;
@@ -753,27 +812,27 @@
             c.innerHTML = `
                 ${renderKopHTML()}
                 <div class="doc-title">
-                    <div>NOTULEN RAPAT / KEGIATAN ${inp('f4', 'judul', '280px', 'Judul rapat/kegiatan')}</div>
+                    <div>NOTULEN RAPAT / KEGIATAN ${inp('f4', 'judul', 18, 'Judul rapat/kegiatan')}</div>
                     <div>PROGRAM RT-KU TERBAIK</div>
                 </div>
                 <div class="fw-bold">A. Identitas Rapat</div>
                 <table style="width:100%; margin-bottom:8px;">
-                    <tr><td width="150">Hari/tanggal</td><td width="15">:</td><td>${inp('f4', 'hari_tgl', '300px')}</td></tr>
-                    <tr><td>Jam</td><td>:</td><td>${inp('f4', 'jam', '200px')}</td></tr>
-                    <tr><td>Tempat</td><td>:</td><td>${inp('f4', 'tempat', '300px')}</td></tr>
-                    <tr><td>Agenda Rapat</td><td>:</td><td>${inp('f4', 'agenda', '420px')}</td></tr>
+                    <tr><td width="150">Hari/tanggal</td><td width="15">:</td><td>${inp('f4', 'hari_tgl', 18)}</td></tr>
+                    <tr><td>Jam</td><td>:</td><td>${inp('f4', 'jam', 12)}</td></tr>
+                    <tr><td>Tempat</td><td>:</td><td>${inp('f4', 'tempat', 20)}</td></tr>
+                    <tr><td>Agenda Rapat</td><td>:</td><td>${inp('f4', 'agenda', 24)}</td></tr>
                 </table>
                 <div class="fw-bold">B. Pimpinan Rapat dan Narasumber</div>
                 <table style="width:100%; margin-bottom:8px;">
-                    <tr><td width="150">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f4', 'pimpinan', '210px')} dari ${inp('f4', 'pimpinan_dari', '170px')}</td></tr>
-                    <tr><td>Notulis</td><td>:</td><td>${inp('f4', 'notulis', '210px')} dari ${inp('f4', 'notulis_dari', '170px')}</td></tr>
+                    <tr><td width="150">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f4', 'pimpinan', 14)} dari ${inp('f4', 'pimpinan_dari', 12)}</td></tr>
+                    <tr><td>Notulis</td><td>:</td><td>${inp('f4', 'notulis', 14)} dari ${inp('f4', 'notulis_dari', 12)}</td></tr>
                     ${renderNarasumberDynamic('f4', 'narasumber_list')}
                 </table>
                 <div class="fw-bold">C. Peserta dan Undangan</div>
                 <table style="width:100%; margin-bottom:8px;">
-                    <tr><td width="150">Jumlah yang hadir</td><td width="15">:</td><td>${inp('f4', 'jml_hadir', '60px')} Orang (Laki-laki: ${inp('f4', 'jml_l', '50px')} Orang, Perempuan: ${inp('f4', 'jml_p', '50px')} Orang)</td></tr>
-                    <tr><td>Undangan terdiri dari</td><td>:</td><td>${inp('f4', 'unsur_undangan', '420px')}</td></tr>
-                    <tr><td>Jumlah Undangan</td><td>:</td><td>${inp('f4', 'jml_undangan', '60px')} Orang (Daftar Hadir sebagaimana terlampir)</td></tr>
+                    <tr><td width="150">Jumlah yang hadir</td><td width="15">:</td><td>${inp('f4', 'jml_hadir', 4)} Orang (Laki-laki: ${inp('f4', 'jml_l', 4)} Orang, Perempuan: ${inp('f4', 'jml_p', 4)} Orang)</td></tr>
+                    <tr><td>Undangan terdiri dari</td><td>:</td><td>${inp('f4', 'unsur_undangan', 24)}</td></tr>
+                    <tr><td>Jumlah Undangan</td><td>:</td><td>${inp('f4', 'jml_undangan', 4)} Orang (Daftar Hadir sebagaimana terlampir)</td></tr>
                 </table>
                 <div class="fw-bold">D. Materi atau Topik yang dibahas meliputi:</div>
                 ${txt('f4', 'materi', 2)}
@@ -791,17 +850,17 @@
                 <div>Pertanyaan :</div>${txt('f4', 'pertanyaan', 2)}
                 <div>Jawaban :</div>${txt('f4', 'jawaban', 2)}
                 <div class="mt-1"><em>5. Kesepakatan Hasil</em></div>
-                ${txt('f4', 'kesepakatan', 3)}
+                ${txt('f4', 'kesepakatan', 2)}
                 <div class="mt-1"><em>6. Penutup</em></div>
-                <p>Rapat ditutup pada pukul ${inp('f4', 'jam_tutup', '70px')} WITA. Seluruh peserta rapat menyatakan setuju/sepakat terhadap hasil musyawarah yang telah ditetapkan.</p>
+                <p>Rapat ditutup pada pukul ${inp('f4', 'jam_tutup', 6)} WITA. Seluruh peserta rapat menyatakan setuju/sepakat terhadap hasil musyawarah yang telah ditetapkan.</p>
                 <div class="row text-center mt-3">
                     <div class="col-6">
                         <div>Mengetahui,<br>Ketua RT</div><div style="height:55px;"></div>
-                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                        <div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div>
                     </div>
                     <div class="col-6">
-                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f4', 'tgl_ttd', '150px')}<br>Dibuat Oleh Notulis</div><div style="height:55px;"></div>
-                        <div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '....................................'}</span> )</div>
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f4', 'tgl_ttd', 14)}<br>Dibuat Oleh Notulis</div><div style="height:55px;"></div>
+                        <div class="fw-bold">(<span class="bind-sekretaris">${g.sekretaris || '________________'}</span>)</div>
                     </div>
                 </div>
             `;
@@ -835,8 +894,8 @@
                             </div>
                             <div class="small"><strong>Keterangan Foto Kegiatan/Barang:</strong></div>
                             <textarea class="paper-textarea small" rows="2" oninput="autoGrow(this); updateRowField('f5','slots',${i},'ket',this.value)">${s.ket || ''}</textarea>
-                            <div class="small mt-1">Tanggal: <input type="text" class="paper-input" style="width:140px" value="${s.tgl || ''}" oninput="updateRowField('f5','slots',${i},'tgl',this.value)"></div>
-                            <div class="small mt-1">Tempat: <input type="text" class="paper-input" style="width:145px" value="${s.tempat || ''}" oninput="updateRowField('f5','slots',${i},'tempat',this.value)"></div>
+                            <div class="small mt-1">Tanggal: <input type="text" class="paper-input" data-minpx="85" style="width:85px" value="${escapeHtml(s.tgl)}" oninput="syncInlineInput(this,85); updateRowField('f5','slots',${i},'tgl',this.value)"><span class="print-text">${escapeHtml(s.tgl)}</span></div>
+                            <div class="small mt-1">Tempat: <input type="text" class="paper-input" data-minpx="95" style="width:95px" value="${escapeHtml(s.tempat)}" oninput="syncInlineInput(this,95); updateRowField('f5','slots',${i},'tempat',this.value)"><span class="print-text">${escapeHtml(s.tempat)}</span></div>
                         </div>
                     </div>
                 `;
@@ -847,9 +906,9 @@
                     <div>PROGRAM RT-KU TERBAIK TA 2026</div>
                 </div>
                 <table style="width:100%; margin-bottom:12px;">
-                    <tr><td width="140">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
-                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
-                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
+                    <tr><td width="140">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '___'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '________'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '________'}</strong></td></tr>
                 </table>
                 <div class="row g-2">${slotsHtml}</div>
                 <button class="btn btn-sm btn-outline-primary btn-add-row mt-2" onclick="addTableRow('f5','slots',{ket:'',tgl:'',tempat:'',img:'',height:220})">+ Tambah Slot Foto</button>
@@ -884,9 +943,9 @@
             c.innerHTML = `
                 <div class="doc-title"><div>DATABASE PENDUDUK DI WILAYAH RT</div></div>
                 <table style="width:100%; margin-bottom:10px;">
-                    <tr><td width="140">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
-                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
-                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
+                    <tr><td width="140">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '___'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '________'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '________'}</strong></td></tr>
                 </table>
                 <div class="hint-block no-print"><i class="fas fa-arrows-left-right me-1"></i>Geser sudut kanan bawah judul kolom untuk memperlebar/mempersempit kolom. Saat dicetak, halaman otomatis menyesuaikan Landscape agar seluruh 16 kolom terbaca utuh.</div>
                 <div class="table-responsive">
@@ -943,20 +1002,20 @@
             c.innerHTML = `
                 <div class="doc-title"><div>DATA DASAR LINGKUNGAN RT</div></div>
                 <table style="width:100%; margin-bottom:10px;">
-                    <tr><td width="150">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
-                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
-                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
-                    <tr><td>Periode Pendataan</td><td>:</td><td>${inp('f7', 'periode', '220px', 'Contoh: Agustus 2026')}</td></tr>
+                    <tr><td width="150">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '___'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '________'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '________'}</strong></td></tr>
+                    <tr><td>Periode Pendataan</td><td>:</td><td>${inp('f7', 'periode', 16, 'Contoh: Agustus 2026')}</td></tr>
                 </table>
                 <div class="hint-block no-print"><i class="fas fa-arrows-left-right me-1"></i>Setiap judul kolom dapat ditarik lebarnya (resize) di pojok kanan bawah sel header, dan tinggi baris otomatis menyesuaikan teks agar tidak ada kata yang terpotong saat cetak.</div>
                 ${secHtml}
                 <div class="row mt-4">
                     <div class="col-7"></div>
                     <div class="col-5 text-center">
-                        <div><span class="bind-desa">${g.desa || '................'}</span>, ${inp('f7', 'tgl_ttd', '150px')}</div>
-                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div><span class="bind-desa">${g.desa || '________'}</span>, ${inp('f7', 'tgl_ttd', 14)}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '___'}</span></div>
                         <div style="height:55px;"></div>
-                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                        <div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div>
                     </div>
                 </div>
             `;
@@ -965,10 +1024,10 @@
                 <div class="doc-title">
                     <div>BERITA ACARA MUSYAWARAH RT</div>
                     <div>KEGIATAN MUSYAWARAH PERENCANAAN</div>
-                    <div style="font-weight:normal; font-size:11pt;">Nomor: ${inp('f8', 'nomor', '240px')}</div>
+                    <div style="font-weight:normal; font-size:11pt;">Nomor: ${inp('f8', 'nomor', 18)}</div>
                 </div>
                 <p style="text-align:justify;">
-                    Pada hari ini, ${inp('f8', 'hari', '100px')}, tanggal ${inp('f8', 'tanggal', '50px')} bulan ${inp('f8', 'bulan', '110px')} tahun ${inp('f8', 'tahun', '70px')}, bertempat di Desa/Kelurahan <strong class="bind-desa">${g.desa || '................'}</strong> Kecamatan <strong class="bind-kec">${g.kec || '................'}</strong>, telah dilaksanakan Musyawarah RT dalam rangka penyusunan Usulan Kegiatan Program RT-Ku Terbaik Tahun ${inp('f8', 'ta', '70px')}.
+                    Pada hari ini, ${inp('f8', 'hari', 8)}, tanggal ${inp('f8', 'tanggal', 4)} bulan ${inp('f8', 'bulan', 10)} tahun ${inp('f8', 'tahun', 5)}, bertempat di Desa/Kelurahan <strong class="bind-desa">${g.desa || '________'}</strong> Kecamatan <strong class="bind-kec">${g.kec || '________'}</strong>, telah dilaksanakan Musyawarah RT dalam rangka penyusunan Usulan Kegiatan Program RT-Ku Terbaik Tahun ${inp('f8', 'ta', 5)}.
                 </p>
 
                 <div class="fw-bold mt-2">A. DASAR PELAKSANAAN</div>
@@ -983,16 +1042,16 @@
                 <div>1. Peserta Rapat terdiri dari:</div>
                 ${txt('f8', 'peserta_terdiri', 2)}
                 <table style="width:100%; margin: 4px 0 8px 18px;">
-                    <tr><td width="190">Jumlah yang Hadir</td><td width="15">:</td><td>${inp('f8', 'hadir_tot', '70px')} Orang</td></tr>
-                    <tr><td>Laki-Laki</td><td>:</td><td>${inp('f8', 'hadir_l', '70px')} Orang</td></tr>
-                    <tr><td>Perempuan</td><td>:</td><td>${inp('f8', 'hadir_p', '70px')} Orang</td></tr>
+                    <tr><td width="190">Jumlah yang Hadir</td><td width="15">:</td><td>${inp('f8', 'hadir_tot', 4)} Orang</td></tr>
+                    <tr><td>Laki-Laki</td><td>:</td><td>${inp('f8', 'hadir_l', 4)} Orang</td></tr>
+                    <tr><td>Perempuan</td><td>:</td><td>${inp('f8', 'hadir_p', 4)} Orang</td></tr>
                 </table>
                 <div>2. Undangan terdiri dari:</div>
                 ${txt('f8', 'undangan_terdiri', 2)}
                 <table style="width:100%; margin: 4px 0 6px 18px;">
-                    <tr><td width="190">Jumlah Undangan yang Hadir</td><td width="15">:</td><td>${inp('f8', 'und_tot', '70px')} Orang</td></tr>
-                    <tr><td>Laki-Laki</td><td>:</td><td>${inp('f8', 'und_l', '70px')} Orang</td></tr>
-                    <tr><td>Perempuan</td><td>:</td><td>${inp('f8', 'und_p', '70px')} Orang</td></tr>
+                    <tr><td width="190">Jumlah Undangan yang Hadir</td><td width="15">:</td><td>${inp('f8', 'und_tot', 4)} Orang</td></tr>
+                    <tr><td>Laki-Laki</td><td>:</td><td>${inp('f8', 'und_l', 4)} Orang</td></tr>
+                    <tr><td>Perempuan</td><td>:</td><td>${inp('f8', 'und_p', 4)} Orang</td></tr>
                 </table>
                 <div class="mb-2">Dengan daftar hadir sebagaimana terlampir</div>
 
@@ -1013,7 +1072,7 @@
                 <div class="fw-bold mt-2">D. HASIL MUSYAWARAH</div>
                 <div><strong>1. Identifikasi Permasalahan/Kebutuhan RT</strong></div>
                 <div>Dari hasil diskusi warga, teridentifikasi kebutuhan sebagai berikut:</div>
-                ${txt('f8', 'identifikasi', 3)}
+                ${txt('f8', 'identifikasi', 2)}
 
                 <div class="mt-2"><strong>2. Usulan Program/Kegiatan</strong></div>
                 <div>Setelah mempertimbangkan kebutuhan serta menu kegiatan RT-Ku Terbaik, dirumuskan beberapa alternatif kegiatan:</div>
@@ -1039,17 +1098,17 @@
                 </ol>
 
                 <div class="fw-bold mt-2">F. PENUTUP</div>
-                <p>Musyawarah ditutup pada pukul ${inp('f8', 'jam_tutup', '100px')} dan seluruh peserta menyatakan setuju dengan hasil keputusan yang tertuang pada Berita Acara ini.</p>
+                <p>Musyawarah ditutup pada pukul ${inp('f8', 'jam_tutup', 8)} dan seluruh peserta menyatakan setuju dengan hasil keputusan yang tertuang pada Berita Acara ini.</p>
 
-                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f8', 'tgl_ttd', '160px')}</div>
+                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f8', 'tgl_ttd', 14)}</div>
                 <div class="row text-center mb-3">
-                    <div class="col-4"><div>Mengetahui,<br>Ketua RT</div><div style="height:50px;"></div><div class="fw-bold">( <span class="bind-ketua">${g.ketua || '................'}</span> )</div></div>
-                    <div class="col-4"><div><br>Sekretaris RT</div><div style="height:50px;"></div><div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '................'}</span> )</div></div>
-                    <div class="col-4"><div>Perwakilan Warga/<br>Tokoh Masyarakat</div><div style="height:50px;"></div><div class="fw-bold">( ${inp('f8', 'tokoh_ttd', '140px')} )</div></div>
+                    <div class="col-4"><div>Mengetahui,<br>Ketua RT</div><div style="height:50px;"></div><div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div></div>
+                    <div class="col-4"><div><br>Sekretaris RT</div><div style="height:50px;"></div><div class="fw-bold">(<span class="bind-sekretaris">${g.sekretaris || '________________'}</span>)</div></div>
+                    <div class="col-4"><div>Perwakilan Warga/<br>Tokoh Masyarakat</div><div style="height:50px;"></div><div class="fw-bold">(${inp('f8', 'tokoh_ttd', 12)})</div></div>
                 </div>
                 <div class="text-center mb-3">
                     <div>Mengetahui,<br>Pendekar Idaman Terbaik Desa/Kelurahan</div><div style="height:50px;"></div>
-                    <div class="fw-bold">( ${inp('f8', 'pendekar_ttd', '180px')} )</div>
+                    <div class="fw-bold">(${inp('f8', 'pendekar_ttd', 14)})</div>
                 </div>
                 <div class="fw-bold">Mengetahui Perwakilan Masyarakat</div>
                 ${renderZigZagSignatureTable('f8', 'perwakilan', false)}
@@ -1082,16 +1141,16 @@
 
                 <div class="fw-bold">A. IDENTITAS RAPAT</div>
                 <table style="width:100%; margin-bottom:8px;">
-                    <tr><td width="130">Hari / tanggal</td><td width="15">:</td><td>${inp('f9', 'hari_tgl', '280px')}</td></tr>
-                    <tr><td>Waktu</td><td>:</td><td>${inp('f9', 'waktu', '180px')}</td></tr>
-                    <tr><td>Tempat</td><td>:</td><td>${inp('f9', 'tempat', '280px')}</td></tr>
-                    <tr><td>Agenda Rapat</td><td>:</td><td>Musyawarah RT dalam rangka pembahasan dan penetapan usulan kegiatan Program RT-Ku Terbaik Tahun ${inp('f9', 'tahun', '70px')}</td></tr>
+                    <tr><td width="130">Hari / tanggal</td><td width="15">:</td><td>${inp('f9', 'hari_tgl', 18)}</td></tr>
+                    <tr><td>Waktu</td><td>:</td><td>${inp('f9', 'waktu', 12)}</td></tr>
+                    <tr><td>Tempat</td><td>:</td><td>${inp('f9', 'tempat', 18)}</td></tr>
+                    <tr><td>Agenda Rapat</td><td>:</td><td>Musyawarah RT dalam rangka pembahasan dan penetapan usulan kegiatan Program RT-Ku Terbaik Tahun ${inp('f9', 'tahun', 5)}</td></tr>
                 </table>
 
                 <div class="fw-bold">B. PIMPINAN DAN PETUGAS RAPAT</div>
                 <table style="width:100%; margin-bottom:8px;">
-                    <tr><td width="130">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f9', 'pimpinan', '300px')}</td></tr>
-                    <tr><td>Notulis</td><td>:</td><td>${inp('f9', 'notulis', '300px')}</td></tr>
+                    <tr><td width="130">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f9', 'pimpinan', 18)}</td></tr>
+                    <tr><td>Notulis</td><td>:</td><td>${inp('f9', 'notulis', 18)}</td></tr>
                 </table>
 
                 <div class="fw-bold">C. DAFTAR PESERTA RAPAT</div>
@@ -1101,11 +1160,11 @@
                     <tbody>${pRows}</tbody>
                 </table>
                 <button class="btn btn-xs btn-outline-primary btn-add-row mb-2" onclick="addTableRow('f9','peserta',{nama:'',unsur:'Warga'})">+ Tambah Peserta</button>
-                <div>Jumlah peserta hadir ${inp('f9', 'jml_hadir', '60px')} orang (Daftar hadir terlampir)</div>
+                <div>Jumlah peserta hadir ${inp('f9', 'jml_hadir', 4)} orang (Daftar hadir terlampir)</div>
 
                 <div class="fw-bold mt-2">D. URAIAN JALANNYA RAPAT</div>
                 <div><strong>1. Pembukaan</strong></div>
-                <p class="mb-1">Rapat dibuka pada pukul ${inp('f9', 'jam_buka', '70px')} WITA, dilanjutkan dengan penyampaian maksud dan tujuan rapat.</p>
+                <p class="mb-1">Rapat dibuka pada pukul ${inp('f9', 'jam_buka', 6)} WITA, dilanjutkan dengan penyampaian maksud dan tujuan rapat.</p>
 
                 <div><strong>2. Penyampaian Informasi Program RT-Ku Terbaik</strong></div>
                 <div>Disampaikan penjelasan singkat mengenai:</div>
@@ -1117,7 +1176,7 @@
 
                 <div><strong>3. Penyampaian Usulan dari Warga</strong></div>
                 <div>Beberapa usulan kegiatan yang disampaikan oleh warga antara lain:</div>
-                ${txt('f9', 'usulan_warga', 3)}
+                ${txt('f9', 'usulan_warga', 2)}
 
                 <div class="mt-2"><strong>4. Pembahasan dan Klarifikasi Usulan</strong></div>
                 <div>Rapat membahas kelayakan usulan dengan mempertimbangkan:</div>
@@ -1142,11 +1201,11 @@
                 </ol>
 
                 <div class="fw-bold mt-2">F. PENUTUP</div>
-                <p>Rapat ditutup pada pukul ${inp('f9', 'jam_tutup', '70px')} WITA. Seluruh peserta rapat menyatakan setuju terhadap hasil musyawarah yang telah ditetapkan. Notulen ini dibuat sebagai dokumentasi resmi musyawarah RT.</p>
+                <p>Rapat ditutup pada pukul ${inp('f9', 'jam_tutup', 6)} WITA. Seluruh peserta rapat menyatakan setuju terhadap hasil musyawarah yang telah ditetapkan. Notulen ini dibuat sebagai dokumentasi resmi musyawarah RT.</p>
 
                 <div class="row text-center mt-3">
-                    <div class="col-6"><div>Mengetahui,<br>Ketua RT</div><div style="height:55px;"></div><div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div></div>
-                    <div class="col-6"><div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f9', 'tgl_ttd', '150px')}<br>Dibuat Oleh Notulis</div><div style="height:55px;"></div><div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '....................................'}</span> )</div></div>
+                    <div class="col-6"><div>Mengetahui,<br>Ketua RT</div><div style="height:55px;"></div><div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div></div>
+                    <div class="col-6"><div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f9', 'tgl_ttd', 14)}<br>Dibuat Oleh Notulis</div><div style="height:55px;"></div><div class="fw-bold">(<span class="bind-sekretaris">${g.sekretaris || '________________'}</span>)</div></div>
                 </div>
             `;
         } else if (activeFormId === 'f10') {
@@ -1154,11 +1213,11 @@
                 <div class="doc-title">
                     <div>BERITA ACARA</div>
                     <div>MUSYAWARAH PERUBAHAN/PENAMBAHAN SASARAN</div>
-                    <div>KEGIATAN ${inp('f10', 'nama_kegiatan', '320px')}</div>
+                    <div>KEGIATAN ${inp('f10', 'nama_kegiatan', 20)}</div>
                     <div>PROGRAM RT-KU TERBAIK</div>
                 </div>
                 <p style="text-align:justify;">
-                    Dalam rangka pelaksanaan Program RT-Ku Terbaik Tahun Anggaran ${inp('f10', 'ta', '70px')}, pada hari ini, ${inp('f10', 'hari', '90px')}, jam ${inp('f10', 'jam', '95px')} tanggal ${inp('f10', 'tanggal', '45px')} bulan ${inp('f10', 'bulan', '105px')} tahun ${inp('f10', 'tahun', '65px')}, bertempat di RT <strong class="bind-rt">${g.rt || '....'}</strong> Desa/Kelurahan <strong class="bind-desa">${g.desa || '................'}</strong> Kecamatan <strong class="bind-kec">${g.kec || '................'}</strong>, telah dilaksanakan Pertemuan/Musyawarah RT dalam rangka perubahan/penambahan sasaran yang dihadiri oleh tokoh masyarakat, wakil masyarakat RT dan unsur lainnya sebagaimana tercantum dalam lampiran daftar hadir.
+                    Dalam rangka pelaksanaan Program RT-Ku Terbaik Tahun Anggaran ${inp('f10', 'ta', 5)}, pada hari ini, ${inp('f10', 'hari', 8)}, jam ${inp('f10', 'jam', 8)} tanggal ${inp('f10', 'tanggal', 4)} bulan ${inp('f10', 'bulan', 10)} tahun ${inp('f10', 'tahun', 5)}, bertempat di RT <strong class="bind-rt">${g.rt || '___'}</strong> Desa/Kelurahan <strong class="bind-desa">${g.desa || '________'}</strong> Kecamatan <strong class="bind-kec">${g.kec || '________'}</strong>, telah dilaksanakan Pertemuan/Musyawarah RT dalam rangka perubahan/penambahan sasaran yang dihadiri oleh tokoh masyarakat, wakil masyarakat RT dan unsur lainnya sebagaimana tercantum dalam lampiran daftar hadir.
                 </p>
                 <div class="fw-bold">A. Materi atau Topik</div>
                 <div>Perubahan/penambahan sasaran atau penerima manfaat kegiatan:</div>
@@ -1166,8 +1225,8 @@
 
                 <div class="fw-bold mt-2">B. Unsur Pimpinan Rapat atau Narasumber</div>
                 <table style="width:100%; margin-bottom:8px;">
-                    <tr><td width="150">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f10', 'pimpinan', '210px')} dari ${inp('f10', 'pimpinan_dari', '160px')}</td></tr>
-                    <tr><td>Sekretaris/Notulis</td><td>:</td><td>${inp('f10', 'notulis', '210px')} dari ${inp('f10', 'notulis_dari', '160px')}</td></tr>
+                    <tr><td width="150">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f10', 'pimpinan', 14)} dari ${inp('f10', 'pimpinan_dari', 12)}</td></tr>
+                    <tr><td>Sekretaris/Notulis</td><td>:</td><td>${inp('f10', 'notulis', 14)} dari ${inp('f10', 'notulis_dari', 12)}</td></tr>
                     ${renderNarasumberDynamic('f10', 'narasumber_list')}
                 </table>
 
@@ -1185,17 +1244,17 @@
                 </ol>
 
                 <div class="fw-bold mt-2">F. Penutup</div>
-                <p class="mt-1">Musyawarah ditutup pada pukul ${inp('f10', 'jam_tutup', '100px')} dan seluruh peserta menyatakan setuju dengan hasil keputusan yang tertuang pada Berita Acara ini.</p>
+                <p class="mt-1">Musyawarah ditutup pada pukul ${inp('f10', 'jam_tutup', 8)} dan seluruh peserta menyatakan setuju dengan hasil keputusan yang tertuang pada Berita Acara ini.</p>
 
-                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f10', 'tgl_ttd', '160px')}</div>
+                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f10', 'tgl_ttd', 14)}</div>
                 <div class="row text-center mb-3">
-                    <div class="col-4"><div>Mengetahui,<br>Ketua RT</div><div style="height:50px;"></div><div class="fw-bold">( <span class="bind-ketua">${g.ketua || '................'}</span> )</div></div>
-                    <div class="col-4"><div><br>Sekretaris RT</div><div style="height:50px;"></div><div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '................'}</span> )</div></div>
-                    <div class="col-4"><div>Perwakilan Warga/<br>Tokoh Masyarakat</div><div style="height:50px;"></div><div class="fw-bold">( ${inp('f10', 'tokoh_ttd', '140px')} )</div></div>
+                    <div class="col-4"><div>Mengetahui,<br>Ketua RT</div><div style="height:50px;"></div><div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div></div>
+                    <div class="col-4"><div><br>Sekretaris RT</div><div style="height:50px;"></div><div class="fw-bold">(<span class="bind-sekretaris">${g.sekretaris || '________________'}</span>)</div></div>
+                    <div class="col-4"><div>Perwakilan Warga/<br>Tokoh Masyarakat</div><div style="height:50px;"></div><div class="fw-bold">(${inp('f10', 'tokoh_ttd', 12)})</div></div>
                 </div>
                 <div class="text-center mb-3">
                     <div>Mengetahui,<br>Pendekar Idaman Terbaik Desa/Kelurahan</div><div style="height:50px;"></div>
-                    <div class="fw-bold">( ${inp('f10', 'pendekar_ttd', '180px')} )</div>
+                    <div class="fw-bold">(${inp('f10', 'pendekar_ttd', 14)})</div>
                 </div>
                 <div class="fw-bold">Mengetahui Perwakilan Masyarakat</div>
                 ${renderZigZagSignatureTable('f10', 'perwakilan', false)}
@@ -1210,13 +1269,13 @@
                 </div>
                 <p>Yang bertanda tangan di bawah ini:</p>
                 <table style="width:100%; margin: 0 0 14px 24px;">
-                    <tr><td width="140">Nama</td><td width="15">:</td><td><strong class="bind-ketua">${g.ketua || '....................................'}</strong></td></tr>
-                    <tr><td>Jabatan</td><td>:</td><td>${inp('f11', 'jabatan', '260px', 'Contoh: Ketua RT 001')}</td></tr>
-                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
-                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
+                    <tr><td width="140">Nama</td><td width="15">:</td><td><strong class="bind-ketua">${g.ketua || '________________'}</strong></td></tr>
+                    <tr><td>Jabatan</td><td>:</td><td>${inp('f11', 'jabatan', 16, 'Contoh: Ketua RT 001')}</td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '________'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '________'}</strong></td></tr>
                 </table>
                 <p style="text-align:justify;">
-                    Dengan ini menyatakan bahwa usulan sasaran penerima manfaat Program RT-Ku Terbaik yang diajukan oleh RT <strong class="bind-rt">${g.rt || '....'}</strong> telah melalui proses pendataan, verifikasi, dan musyawarah di tingkat RT sesuai ketentuan yang berlaku.
+                    Dengan ini menyatakan bahwa usulan sasaran penerima manfaat Program RT-Ku Terbaik yang diajukan oleh RT <strong class="bind-rt">${g.rt || '___'}</strong> telah melalui proses pendataan, verifikasi, dan musyawarah di tingkat RT sesuai ketentuan yang berlaku.
                 </p>
                 <p class="mb-1">Selanjutnya, saya menyatakan bahwa:</p>
                 <ol style="text-align:justify;">
@@ -1230,10 +1289,10 @@
                 <div class="row mt-4">
                     <div class="col-6"></div>
                     <div class="col-6 text-center">
-                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f11', 'tgl_ttd', '150px')}</div>
-                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f11', 'tgl_ttd', 14)}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '___'}</span></div>
                         <div class="materai-box">Materai<br>10.000</div>
-                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                        <div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div>
                     </div>
                 </div>
             `;
@@ -1290,10 +1349,10 @@
                 <div class="doc-title"><div>FORMULIR USULAN PROGRAM RT-KU TERBAIK</div></div>
                 <div class="fw-bold">A. IDENTITAS RT</div>
                 <table style="width:100%; margin-bottom:10px;">
-                    <tr><td width="140">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
-                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
-                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
-                    <tr><td>Bulan Pelaporan</td><td>:</td><td>${inp('f12', 'bulan', '220px', 'Contoh: November 2026')}</td></tr>
+                    <tr><td width="140">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '___'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '________'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '________'}</strong></td></tr>
+                    <tr><td>Bulan Pelaporan</td><td>:</td><td>${inp('f12', 'bulan', 16, 'Contoh: November 2026')}</td></tr>
                 </table>
                 <div class="fw-bold">B. USULAN KEGIATAN</div>
                 <div class="table-responsive">
@@ -1319,10 +1378,10 @@
                 <div class="row mt-3">
                     <div class="col-7"></div>
                     <div class="col-5 text-center">
-                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f12', 'tgl_ttd', '150px')}</div>
-                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f12', 'tgl_ttd', 14)}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '___'}</span></div>
                         <div style="height:55px;"></div>
-                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                        <div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div>
                     </div>
                 </div>
             `;
@@ -1330,18 +1389,18 @@
         } else if (activeFormId === 'f16') {
             c.innerHTML = `
                 ${renderKopHTML()}
-                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f16', 'tgl_surat', '160px')}</div>
+                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f16', 'tgl_surat', 14)}</div>
                 <table style="width:100%; margin-bottom:12px;">
-                    <tr><td width="90">Nomor</td><td width="15">:</td><td>${inp('f16', 'nomor', '240px')}</td></tr>
-                    <tr><td>Lampiran</td><td>:</td><td>${inp('f16', 'lampiran', '240px')}</td></tr>
+                    <tr><td width="90">Nomor</td><td width="15">:</td><td>${inp('f16', 'nomor', 18)}</td></tr>
+                    <tr><td>Lampiran</td><td>:</td><td>${inp('f16', 'lampiran', 12)}</td></tr>
                     <tr><td>Hal</td><td>:</td><td><strong>Pengajuan Usulan Program RT-KU Terbaik</strong></td></tr>
                 </table>
                 <div class="mb-3">
-                    <div>Yth. <strong>Camat <span class="bind-kec">${g.kec || '................'}</span></strong></div>
+                    <div>Yth. <strong>Camat <span class="bind-kec">${g.kec || '________'}</span></strong></div>
                     <div>di - <br><strong style="padding-left:20px;">Tempat</strong></div>
                 </div>
                 <p style="text-align:justify;">
-                    Bersama ini disampaikan pengajuan berkas usulan kegiatan Program RT-Ku Terbaik tahun ${inp('f16', 'tahun', '70px')} selanjutnya untuk diverifikasi sebagai syarat pencairan dana Program RT-Ku Terbaik tahun ${inp('f16', 'tahun2', '70px')}.
+                    Bersama ini disampaikan pengajuan berkas usulan kegiatan Program RT-Ku Terbaik tahun ${inp('f16', 'tahun', 5)} selanjutnya untuk diverifikasi sebagai syarat pencairan dana Program RT-Ku Terbaik tahun ${inp('f16', 'tahun2', 5)}.
                 </p>
                 <p class="mb-1">Adapun rincian berkas yang disampaikan sebagai berikut:</p>
                 <table class="doc-table">
@@ -1349,27 +1408,27 @@
                         <tr><th width="45">No</th><th>Jenis Dokumen</th><th width="110">Jumlah</th><th width="180">Keterangan</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td class="text-center">1</td><td>Usulan Program Ketahanan Sosial</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','j1','')}" oninput="setVal('f16','j1',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','k1','')}" oninput="setVal('f16','k1',this.value)"></td></tr>
-                        <tr><td class="text-center">2</td><td>Usulan Program Pemberdayaan Masyarakat</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','j2','')}" oninput="setVal('f16','j2',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','k2','')}" oninput="setVal('f16','k2',this.value)"></td></tr>
-                        <tr><td class="text-center">3</td><td>Usulan Program Infrastruktur</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','j3','')}" oninput="setVal('f16','j3',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','k3','')}" oninput="setVal('f16','k3',this.value)"></td></tr>
-                        <tr><td class="text-center">4</td><td>Usulan Program Operasional</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','j4','')}" oninput="setVal('f16','j4',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','k4','')}" oninput="setVal('f16','k4',this.value)"></td></tr>
+                        <tr><td class="text-center">1</td><td>Usulan Program Ketahanan Sosial</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','j1',''))}" oninput="syncInlineInput(this,10); setVal('f16','j1',this.value)"><span class="print-text">${escapeHtml(getVal('f16','j1',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','k1',''))}" oninput="syncInlineInput(this,10); setVal('f16','k1',this.value)"><span class="print-text">${escapeHtml(getVal('f16','k1',''))}</span></td></tr>
+                        <tr><td class="text-center">2</td><td>Usulan Program Pemberdayaan Masyarakat</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','j2',''))}" oninput="syncInlineInput(this,10); setVal('f16','j2',this.value)"><span class="print-text">${escapeHtml(getVal('f16','j2',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','k2',''))}" oninput="syncInlineInput(this,10); setVal('f16','k2',this.value)"><span class="print-text">${escapeHtml(getVal('f16','k2',''))}</span></td></tr>
+                        <tr><td class="text-center">3</td><td>Usulan Program Infrastruktur</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','j3',''))}" oninput="syncInlineInput(this,10); setVal('f16','j3',this.value)"><span class="print-text">${escapeHtml(getVal('f16','j3',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','k3',''))}" oninput="syncInlineInput(this,10); setVal('f16','k3',this.value)"><span class="print-text">${escapeHtml(getVal('f16','k3',''))}</span></td></tr>
+                        <tr><td class="text-center">4</td><td>Usulan Program Operasional</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','j4',''))}" oninput="syncInlineInput(this,10); setVal('f16','j4',this.value)"><span class="print-text">${escapeHtml(getVal('f16','j4',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','k4',''))}" oninput="syncInlineInput(this,10); setVal('f16','k4',this.value)"><span class="print-text">${escapeHtml(getVal('f16','k4',''))}</span></td></tr>
                         <tr><td class="text-center fw-bold">5</td><td colspan="3" class="fw-bold">Data Dukung antara lain:</td></tr>
-                        <tr><td></td><td>1. BA Musyawarah Perencanaan RT</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd1','')}" oninput="setVal('f16','jd1',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd1','')}" oninput="setVal('f16','kd1',this.value)"></td></tr>
-                        <tr><td></td><td>2. Undangan</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd2','')}" oninput="setVal('f16','jd2',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd2','')}" oninput="setVal('f16','kd2',this.value)"></td></tr>
-                        <tr><td></td><td>3. Daftar Hadir</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd3','')}" oninput="setVal('f16','jd3',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd3','')}" oninput="setVal('f16','kd3',this.value)"></td></tr>
-                        <tr><td></td><td>4. Notulen</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd4','')}" oninput="setVal('f16','jd4',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd4','')}" oninput="setVal('f16','kd4',this.value)"></td></tr>
-                        <tr><td></td><td>5. Foto dokumentasi</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd5','')}" oninput="setVal('f16','jd5',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd5','')}" oninput="setVal('f16','kd5',this.value)"></td></tr>
-                        <tr><td></td><td>6. ${inp('f16', 'dok6', '260px')}</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd6','')}" oninput="setVal('f16','jd6',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd6','')}" oninput="setVal('f16','kd6',this.value)"></td></tr>
+                        <tr><td></td><td>1. BA Musyawarah Perencanaan RT</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','jd1',''))}" oninput="syncInlineInput(this,10); setVal('f16','jd1',this.value)"><span class="print-text">${escapeHtml(getVal('f16','jd1',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','kd1',''))}" oninput="syncInlineInput(this,10); setVal('f16','kd1',this.value)"><span class="print-text">${escapeHtml(getVal('f16','kd1',''))}</span></td></tr>
+                        <tr><td></td><td>2. Undangan</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','jd2',''))}" oninput="syncInlineInput(this,10); setVal('f16','jd2',this.value)"><span class="print-text">${escapeHtml(getVal('f16','jd2',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','kd2',''))}" oninput="syncInlineInput(this,10); setVal('f16','kd2',this.value)"><span class="print-text">${escapeHtml(getVal('f16','kd2',''))}</span></td></tr>
+                        <tr><td></td><td>3. Daftar Hadir</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','jd3',''))}" oninput="syncInlineInput(this,10); setVal('f16','jd3',this.value)"><span class="print-text">${escapeHtml(getVal('f16','jd3',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','kd3',''))}" oninput="syncInlineInput(this,10); setVal('f16','kd3',this.value)"><span class="print-text">${escapeHtml(getVal('f16','kd3',''))}</span></td></tr>
+                        <tr><td></td><td>4. Notulen</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','jd4',''))}" oninput="syncInlineInput(this,10); setVal('f16','jd4',this.value)"><span class="print-text">${escapeHtml(getVal('f16','jd4',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','kd4',''))}" oninput="syncInlineInput(this,10); setVal('f16','kd4',this.value)"><span class="print-text">${escapeHtml(getVal('f16','kd4',''))}</span></td></tr>
+                        <tr><td></td><td>5. Foto dokumentasi</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','jd5',''))}" oninput="syncInlineInput(this,10); setVal('f16','jd5',this.value)"><span class="print-text">${escapeHtml(getVal('f16','jd5',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','kd5',''))}" oninput="syncInlineInput(this,10); setVal('f16','kd5',this.value)"><span class="print-text">${escapeHtml(getVal('f16','kd5',''))}</span></td></tr>
+                        <tr><td></td><td>6. ${inp('f16', 'dok6', 18)}</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${escapeHtml(getVal('f16','jd6',''))}" oninput="syncInlineInput(this,10); setVal('f16','jd6',this.value)"><span class="print-text">${escapeHtml(getVal('f16','jd6',''))}</span></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${escapeHtml(getVal('f16','kd6',''))}" oninput="syncInlineInput(this,10); setVal('f16','kd6',this.value)"><span class="print-text">${escapeHtml(getVal('f16','kd6',''))}</span></td></tr>
                     </tbody>
                 </table>
                 <p>Demikian disampaikan, atas perhatiannya diucapkan terima kasih.</p>
                 <div class="row mt-4">
                     <div class="col-7"></div>
                     <div class="col-5 text-center">
-                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f16', 'tgl_ttd', '150px')}</div>
-                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f16', 'tgl_ttd', 14)}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '___'}</span></div>
                         <div style="height:55px;"></div>
-                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                        <div class="fw-bold">(<span class="bind-ketua">${g.ketua || '________________'}</span>)</div>
                     </div>
                 </div>
             `;
@@ -1441,13 +1500,15 @@
 
     function resetAllData() {
         if (confirm('Hapus seluruh isian pada ke-13 form dan mulai dari awal?')) {
+            localStorage.removeItem('rtku_13forms_v5');
+            localStorage.removeItem('rtku_13forms_v4');
             localStorage.removeItem('rtku_13forms_v3');
             localStorage.removeItem('rtku_13forms_v2');
             location.reload();
         }
     }
 
-    window.addEventListener('beforeprint', autoGrowAllTextareas);
+    window.addEventListener('beforeprint', adjustAllInputsAndTextareas);
     window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('g_rt').value = store.global.rt || '';
         document.getElementById('g_desa').value = store.global.desa || '';
