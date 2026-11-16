@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Templetasi Administrasi RT-Ku Terbaik (13 Form)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body { background-color: #eef2f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .topbar { background: linear-gradient(135deg, #154360 0%, #1f618d 60%, #2980b9 100%); color: #fff; padding: 14px 20px; }
+        .sidebar-card { position: sticky; top: 15px; max-height: calc(100vh - 30px); overflow-y: auto; }
+        .form-nav-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 9px 12px; border-radius: 6px; margin-bottom: 5px;
+            cursor: pointer; border: 1px solid #dee2e6; background: #fff;
+            font-size: 0.87rem; transition: all 0.15s ease;
+        }
+        .form-nav-item:hover { background: #ebf5fb; border-color: #2980b9; }
+        .form-nav-item.active { background: #1f618d; color: #fff; border-color: #154360; font-weight: 600; }
+        .form-nav-item.active .text-muted { color: #d6eaf8 !important; }
+        .check-badge { font-size: 1rem; }
+
+        /* Lembar Kertas Dokumen */
+        .paper-sheet {
+            background: #fff; padding: 35px 42px; border-radius: 6px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: #000;
+            line-height: 1.45;
+        }
+        .kop-surat {
+            text-align: center; border-bottom: 3px double #000;
+            padding-bottom: 8px; margin-bottom: 18px;
+        }
+        .kop-surat h4 { margin: 0; font-weight: bold; text-transform: uppercase; font-size: 14pt; letter-spacing: 0.5px; }
+        .kop-surat p { margin: 2px 0 0 0; font-size: 11pt; }
+        .doc-title { text-align: center; font-weight: bold; text-transform: uppercase; margin-bottom: 16px; }
+        .doc-title div { margin-bottom: 2px; }
+
+        /* Panduan Pengisian (Hanya tampil di layar, hilang saat print) */
+        .hint-guide {
+            display: inline-block; font-family: 'Segoe UI', sans-serif;
+            font-size: 0.72rem; color: #0d6efd; background: #e8f4fd;
+            border: 1px solid #b6d4fe; border-radius: 4px;
+            padding: 1px 6px; margin-left: 4px; vertical-align: middle;
+        }
+        .hint-block {
+            font-family: 'Segoe UI', sans-serif; font-size: 0.75rem;
+            color: #084298; background: #cfe2ff; border-left: 3px solid #0d6efd;
+            padding: 4px 8px; margin-bottom: 4px; border-radius: 0 4px 4px 0;
+        }
+
+        /* Input menyatu dengan kertas tanpa shadow/placeholder */
+        .paper-input {
+            border: none; border-bottom: 1px dotted #555; background: #f8fbff;
+            font-family: inherit; font-size: inherit; color: #000; padding: 1px 4px;
+            outline: none; box-shadow: none !important;
+        }
+        .paper-input:focus { background: #e8f4fd; border-bottom: 1px solid #0d6efd; }
+        .paper-textarea {
+            width: 100%; border: 1px dashed #999; background: #f8fbff;
+            font-family: inherit; font-size: inherit; color: #000; padding: 5px 8px;
+            resize: vertical; box-shadow: none !important;
+        }
+        .paper-textarea:focus { background: #e8f4fd; border-color: #0d6efd; outline: none; }
+
+        /* Tabel Dokumen & Kolom Resizable */
+        .doc-table { width: 100%; border-collapse: collapse; margin: 8px 0 12px 0; font-size: 10pt; table-layout: auto; }
+        .doc-table th, .doc-table td {
+            border: 1px solid #000; padding: 4px 5px; vertical-align: middle;
+            word-wrap: break-word; overflow-wrap: break-word;
+        }
+        .doc-table th {
+            background-color: #f2f2f2; text-align: center; font-weight: bold;
+            position: relative;
+        }
+        .th-resizable {
+            resize: horizontal; overflow: auto; min-width: 45px; max-width: 100%;
+            display: block; width: 100%;
+        }
+        /* Auto-grow textarea dalam sel tabel agar semua kata terlihat penuh saat print */
+        .cell-area {
+            width: 100%; border: none; background: transparent;
+            font-family: inherit; font-size: inherit; color: #000;
+            padding: 2px; resize: none; overflow: hidden;
+            display: block; min-height: 24px; line-height: 1.3;
+            box-shadow: none !important;
+        }
+        .cell-area:focus { background: #e8f4fd; outline: none; }
+
+        .materai-box {
+            border: 1px dashed #666; width: 95px; height: 55px; margin: 6px auto;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8.5pt; color: #555; text-align: center;
+        }
+        .foto-slot { border: 1px solid #000; padding: 10px; margin-bottom: 12px; }
+        .foto-preview {
+            width: 100%; border: 1px dashed #aaa;
+            display: flex; align-items: center; justify-content: center; background: #fafafa;
+            margin-bottom: 6px; overflow: hidden;
+        }
+        .foto-preview img { width: 100%; height: 100%; object-fit: contain; }
+
+        /* Mode Cetak / PDF */
+        @media print {
+            body { background: #fff !important; }
+            .no-print, .hint-guide, .hint-block, .btn-add-row, .btn-del-row, input[type="file"], .foto-controls {
+                display: none !important;
+            }
+            .col-lg-9 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
+            .paper-sheet { box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+            .paper-input { background: transparent !important; border-bottom: 1px dotted #000 !important; }
+            .paper-textarea { background: transparent !important; border: none !important; padding: 0 !important; resize: none !important; }
+            .th-resizable { resize: none !important; overflow: visible !important; }
+            .table-responsive { overflow: visible !important; }
+            .doc-table { font-size: 8.5pt !important; width: 100% !important; }
+            .doc-table th, .doc-table td { padding: 3px 4px !important; }
+            .foto-preview { border: none !important; background: transparent !important; }
+        }
+    </style>
+    <style id="dynamic_print_orientation"></style>
+</head>
+<body>
+
+<div class="topbar shadow-sm no-print">
+    <div class="container-fluid d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h5 class="mb-0 fw-bold"><i class="fas fa-file-signature me-2"></i>Sistem Templetasi Administrasi RT-Ku Terbaik</h5>
+            <small class="opacity-75">13 Formulir Standar Juknis | Kabupaten Kutai Kartanegara</small>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge bg-light text-dark d-flex align-items-center px-3" id="progress_summary">Selesai: 0 / 13 Form</span>
+            <button class="btn btn-sm btn-warning fw-bold" onclick="resetAllData()"><i class="fas fa-rotate-left me-1"></i>Reset Semua</button>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid py-3">
+    <div class="row g-3">
+        <!-- SIDEBAR KIRI: IDENTITAS KOP & NAVIGASI 13 FORM -->
+        <div class="col-lg-3 no-print">
+            <div class="sidebar-card">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-primary text-white fw-bold py-2 small">
+                        <i class="fas fa-building me-1"></i> Identitas Kop & Pengurus RT
+                    </div>
+                    <div class="card-body p-2 small">
+                        <div class="row g-1 mb-1">
+                            <div class="col-4">
+                                <label class="fw-bold mb-0">No. RT</label>
+                                <input type="text" id="g_rt" class="form-control form-control-sm" oninput="syncGlobal()">
+                            </div>
+                            <div class="col-8">
+                                <label class="fw-bold mb-0">Desa / Kelurahan</label>
+                                <input type="text" id="g_desa" class="form-control form-control-sm" oninput="syncGlobal()">
+                            </div>
+                        </div>
+                        <div class="mb-1">
+                            <label class="fw-bold mb-0">Alamat Sekretariat RT</label>
+                            <input type="text" id="g_alamat" class="form-control form-control-sm" oninput="syncGlobal()">
+                        </div>
+                        <div class="row g-1 mb-1">
+                            <div class="col-6">
+                                <label class="fw-bold mb-0">Kecamatan</label>
+                                <input type="text" id="g_kec" class="form-control form-control-sm" oninput="syncGlobal()">
+                            </div>
+                            <div class="col-6">
+                                <label class="fw-bold mb-0">Tempat Surat</label>
+                                <input type="text" id="g_tempat" class="form-control form-control-sm" oninput="syncGlobal()">
+                            </div>
+                        </div>
+                        <div class="mb-1">
+                            <label class="fw-bold mb-0">Nama Ketua RT</label>
+                            <input type="text" id="g_ketua" class="form-control form-control-sm" oninput="syncGlobal()">
+                        </div>
+                        <div class="row g-1">
+                            <div class="col-6">
+                                <label class="fw-bold mb-0">Sekretaris RT</label>
+                                <input type="text" id="g_sekretaris" class="form-control form-control-sm" oninput="syncGlobal()">
+                            </div>
+                            <div class="col-6">
+                                <label class="fw-bold mb-0">Bendahara RT</label>
+                                <input type="text" id="g_bendahara" class="form-control form-control-sm" oninput="syncGlobal()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-dark text-white fw-bold py-2 small">
+                        <i class="fas fa-list-check me-1"></i> Daftar 13 Formulir
+                    </div>
+                    <div class="card-body p-2" id="nav_list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AREA KANAN: TOOLBAR & LEMBAR FORM -->
+        <div class="col-lg-9">
+            <div class="card border-0 shadow-sm mb-2 no-print">
+                <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <span class="fw-bold text-primary" id="active_form_title">FORM 1</span>
+                        <span class="ms-2 badge" id="active_form_status">Belum Lengkap</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-success d-none" id="btn_export_xlsx" onclick="exportCurrentExcel()">
+                            <i class="fas fa-file-excel me-1"></i>Export Excel (.xlsx)
+                        </button>
+                        <button class="btn btn-sm btn-primary fw-bold" onclick="window.print()">
+                            <i class="fas fa-print me-1"></i>Cetak / Simpan PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="paper-sheet" id="form_canvas"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const FORM_DEFS = [
+        { id: 'f1',  code: 'FORM 1',  title: 'Surat Undangan Rapat', hasKop: true },
+        { id: 'f2',  code: 'FORM 2',  title: 'BA Pertemuan / Musyawarah', hasKop: false },
+        { id: 'f3',  code: 'FORM 3',  title: 'Daftar Hadir Rapat', hasKop: true },
+        { id: 'f4',  code: 'FORM 4',  title: 'Notulen Rapat / Kegiatan', hasKop: true },
+        { id: 'f5',  code: 'FORM 5',  title: 'Dokumentasi Kegiatan / Barang', hasKop: false },
+        { id: 'f6',  code: 'FORM 6',  title: 'Database Penduduk Wilayah RT', hasKop: false, excel: true, landscape: true },
+        { id: 'f7',  code: 'FORM 7',  title: 'Data Dasar Lingkungan RT (7 Tabel)', hasKop: false, landscape: true },
+        { id: 'f8',  code: 'FORM 8',  title: 'BA Musyawarah Perencanaan RT', hasKop: false },
+        { id: 'f9',  code: 'FORM 9',  title: 'Notulen Musyawarah Perencanaan', hasKop: false },
+        { id: 'f10', code: 'FORM 10', title: 'BA Perubahan / Penambahan Sasaran', hasKop: false },
+        { id: 'f11', code: 'FORM 11', title: 'Surat Pernyataan Ketua RT', hasKop: true },
+        { id: 'f12', code: 'FORM 12', title: 'Formulir Usulan Program RT-Ku', hasKop: false, excel: true, landscape: true },
+        { id: 'f16', code: 'FORM 16', title: 'Surat Pengajuan Usulan ke Camat', hasKop: true }
+    ];
+
+    let activeFormId = 'f1';
+    let store = JSON.parse(localStorage.getItem('rtku_13forms_v2') || '{}');
+    if (!store.global) {
+        store.global = { rt: '', desa: '', alamat: '', kec: '', tempat: 'Tenggarong', ketua: '', sekretaris: '', bendahara: '' };
+    }
+    if (!store.forms) store.forms = {};
+
+    function saveStore() {
+        localStorage.setItem('rtku_13forms_v2', JSON.stringify(store));
+        updateChecklistUI();
+    }
+
+    function getF(fid) {
+        if (!store.forms[fid]) store.forms[fid] = {};
+        return store.forms[fid];
+    }
+
+    function setVal(fid, key, val) {
+        getF(fid)[key] = val;
+        saveStore();
+    }
+
+    function getVal(fid, key, def = '') {
+        return getF(fid)[key] !== undefined ? getF(fid)[key] : def;
+    }
+
+    function syncGlobal() {
+        store.global.rt = document.getElementById('g_rt').value;
+        store.global.desa = document.getElementById('g_desa').value;
+        store.global.alamat = document.getElementById('g_alamat').value;
+        store.global.kec = document.getElementById('g_kec').value;
+        store.global.tempat = document.getElementById('g_tempat').value;
+        store.global.ketua = document.getElementById('g_ketua').value;
+        store.global.sekretaris = document.getElementById('g_sekretaris').value;
+        store.global.bendahara = document.getElementById('g_bendahara').value;
+        saveStore();
+
+        document.querySelectorAll('.bind-rt').forEach(el => el.textContent = store.global.rt || '....');
+        document.querySelectorAll('.bind-desa').forEach(el => el.textContent = store.global.desa || '................');
+        document.querySelectorAll('.bind-alamat').forEach(el => el.textContent = store.global.alamat || '........................................');
+        document.querySelectorAll('.bind-kec').forEach(el => el.textContent = store.global.kec || '................');
+        document.querySelectorAll('.bind-tempat').forEach(el => el.textContent = store.global.tempat || 'Tenggarong');
+        document.querySelectorAll('.bind-ketua').forEach(el => el.textContent = store.global.ketua || '....................................');
+        document.querySelectorAll('.bind-sekretaris').forEach(el => el.textContent = store.global.sekretaris || '....................................');
+        document.querySelectorAll('.bind-bendahara').forEach(el => el.textContent = store.global.bendahara || '....................................');
+    }
+
+    function renderKopHTML() {
+        const g = store.global;
+        return `
+            <div class="kop-surat">
+                <h4>PENGURUS RT <span class="bind-rt">${g.rt || '....'}</span></h4>
+                <p>Alamat <span class="bind-alamat">${g.alamat || '........................................'}</span> Kecamatan <span class="bind-kec">${g.kec || '................'}</span> Kabupaten Kutai Kartanegara</p>
+            </div>
+        `;
+    }
+
+    // Input polos TANPA placeholder agar bersih total saat di-print
+    function inp(fid, key, width = '220px', hintText = '') {
+        const v = String(getVal(fid, key, '')).replace(/"/g, '&quot;');
+        const hintHtml = hintText ? `<span class="hint-guide no-print">${hintText}</span>` : '';
+        return `<input type="text" class="paper-input" style="width:${width}" value="${v}" oninput="setVal('${fid}','${key}',this.value)">${hintHtml}`;
+    }
+
+    // Textarea polos TANPA placeholder + hint block terpisah yang disembunyikan saat print
+    function txt(fid, key, rows = 3, hintText = '') {
+        const v = getVal(fid, key, '');
+        const hintHtml = hintText ? `<div class="hint-block no-print"><i class="fas fa-info-circle me-1"></i>${hintText}</div>` : '';
+        return `${hintHtml}<textarea class="paper-textarea" rows="${rows}" oninput="autoGrow(this); setVal('${fid}','${key}',this.value)">${v}</textarea>`;
+    }
+
+    // Auto-height textarea dalam sel tabel agar semua teks terlihat penuh saat cetak
+    function autoGrow(el) {
+        el.style.height = 'auto';
+        el.style.height = (el.scrollHeight) + 'px';
+    }
+
+    function autoGrowAllTextareas() {
+        document.querySelectorAll('textarea').forEach(ta => autoGrow(ta));
+    }
+
+    function isFormCompleted(fid) {
+        const d = getF(fid);
+        switch (fid) {
+            case 'f1':  return !!(d.nomor && d.hari && d.tanggal && d.acara && d.tempat);
+            case 'f2':  return !!(d.ta && d.hari && d.tanggal && d.acara && d.materi && d.keputusan);
+            case 'f3':  return !!(d.nama_rapat && d.tgl_rapat && Array.isArray(d.rows) && d.rows.some(r => r.nama));
+            case 'f4':  return !!(d.judul && d.hari_tgl && d.agenda && d.kesepakatan);
+            case 'f5':  return !!(Array.isArray(d.slots) && d.slots.some(s => s.ket || s.img));
+            case 'f6':  return !!(Array.isArray(d.penduduk) && d.penduduk.some(p => p.nama && p.nik));
+            case 'f7':  return !!(d.periode && ['t1','t2','t3','t4','t5','t6','t7'].some(t => Array.isArray(d[t]) && d[t].length > 0));
+            case 'f8':  return !!(d.nomor && d.hari && d.tanggal && d.identifikasi && d.alasan);
+            case 'f9':  return !!(d.hari_tgl && d.pimpinan && d.notulis && d.usulan_warga);
+            case 'f10': return !!(d.nama_kegiatan && d.hari && d.tanggal && d.materi);
+            case 'f11': return !!(d.jabatan && store.global.ketua && store.global.rt);
+            case 'f12': return !!(d.bulan && ['A','B','C','D'].some(k => Array.isArray(d[k]) && d[k].some(r => r.kegiatan)));
+            case 'f16': return !!(d.nomor && d.tahun);
+            default:    return false;
+        }
+    }
+
+    function updateChecklistUI() {
+        const nav = document.getElementById('nav_list');
+        let doneCount = 0;
+        nav.innerHTML = FORM_DEFS.map(f => {
+            const done = isFormCompleted(f.id);
+            if (done) doneCount++;
+            const isAct = f.id === activeFormId;
+            return `
+                <div class="form-nav-item ${isAct ? 'active' : ''}" onclick="switchForm('${f.id}')">
+                    <div>
+                        <div class="fw-bold">${f.code}</div>
+                        <div class="text-muted" style="font-size:0.78rem;">${f.title}</div>
+                    </div>
+                    <span class="check-badge">${done ? '✅' : '⬜'}</span>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('progress_summary').textContent = `Selesai: ${doneCount} / ${FORM_DEFS.length} Form`;
+        const curDef = FORM_DEFS.find(f => f.id === activeFormId);
+        const curDone = isFormCompleted(activeFormId);
+        document.getElementById('active_form_title').textContent = `${curDef.code} — ${curDef.title}`;
+        const stBadge = document.getElementById('active_form_status');
+        stBadge.textContent = curDone ? '✅ Sudah Lengkap' : 'Belum Lengkap';
+        stBadge.className = curDone ? 'ms-2 badge bg-success' : 'ms-2 badge bg-secondary';
+
+        const btnXls = document.getElementById('btn_export_xlsx');
+        if (curDef.excel) btnXls.classList.remove('d-none');
+        else btnXls.classList.add('d-none');
+
+        // Atur orientasi kertas saat print (Landscape otomatis untuk tabel lebar)
+        const orientStyle = document.getElementById('dynamic_print_orientation');
+        orientStyle.textContent = curDef.landscape
+            ? '@media print { @page { size: landscape; margin: 10mm; } }'
+            : '@media print { @page { size: portrait; margin: 14mm; } }';
+    }
+
+    function switchForm(fid) {
+        activeFormId = fid;
+        renderFormCanvas();
+        updateChecklistUI();
+        setTimeout(autoGrowAllTextareas, 30);
+    }
+
+    // Helper Array Dinamis (Yth, Narasumber, Baris Tabel)
+    function addArrayItem(fid, listKey, templateObj) {
+        const d = getF(fid);
+        if (!Array.isArray(d[listKey])) d[listKey] = [];
+        d[listKey].push({ ...templateObj });
+        saveStore();
+        renderFormCanvas();
+        setTimeout(autoGrowAllTextareas, 20);
+    }
+
+    function delArrayItem(fid, listKey, idx) {
+        const d = getF(fid);
+        if (Array.isArray(d[listKey]) && d[listKey].length > 1) {
+            d[listKey].splice(idx, 1);
+            saveStore();
+            renderFormCanvas();
+            setTimeout(autoGrowAllTextareas, 20);
+        }
+    }
+
+    function delTableRow(fid, listKey, idx) {
+        const d = getF(fid);
+        if (Array.isArray(d[listKey])) {
+            d[listKey].splice(idx, 1);
+            saveStore();
+            renderFormCanvas();
+            setTimeout(autoGrowAllTextareas, 20);
+        }
+    }
+
+    function updateRowField(fid, listKey, idx, field, val) {
+        const d = getF(fid);
+        if (d[listKey] && d[listKey][idx]) {
+            d[listKey][idx][field] = val;
+            saveStore();
+            if (fid === 'f12') recalcForm12();
+        }
+    }
+
+    // Render daftar Narasumber dinamis (mulai 1 + tombol tambah)
+    function renderNarasumberDynamic(fid, listKey = 'narasumber_list') {
+        const d = getF(fid);
+        if (!Array.isArray(d[listKey]) || d[listKey].length === 0) {
+            d[listKey] = [{ nama: '', asal: '' }];
+        }
+        return d[listKey].map((ns, i) => `
+            <tr>
+                <td width="150">${i === 0 ? 'Narasumber' : ''}</td>
+                <td width="15">${i === 0 ? ':' : ''}</td>
+                <td>
+                    ${i + 1}. <input type="text" class="paper-input" style="width:210px" value="${ns.nama || ''}" oninput="updateRowField('${fid}','${listKey}',${i},'nama',this.value)">
+                    dari <input type="text" class="paper-input" style="width:170px" value="${ns.asal || ''}" oninput="updateRowField('${fid}','${listKey}',${i},'asal',this.value)">
+                    ${i === 0
+                        ? `<button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 ms-1 btn-add-row" onclick="addArrayItem('${fid}','${listKey}',{nama:'',asal:''})">+ Narasumber</button>`
+                        : `<button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 ms-1 btn-del-row" onclick="delArrayItem('${fid}','${listKey}',${i})">×</button>`
+                    }
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Tabel Tanda Tangan Zig-Zag (Tanpa pilihan L/P, kolom teks bebas agar bisa diisi manual dengan pulpen)
+    function renderZigZagSignatureTable(fid, listKey, withAlamat = false) {
+        const d = getF(fid);
+        if (!Array.isArray(d[listKey]) || d[listKey].length === 0) {
+            d[listKey] = Array.from({ length: withAlamat ? 15 : 8 }, () => ({ nama: '', jk: '', jabatan: '', alamat: '' }));
+        }
+        const rows = d[listKey];
+        let body = '';
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            const no = i + 1;
+            const isOdd = no % 2 === 1;
+            body += `
+                <tr>
+                    <td class="text-center">${no}.</td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${listKey}',${i},'nama',this.value)">${r.nama || ''}</textarea></td>
+                    <td><textarea class="cell-area text-center" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${listKey}',${i},'jk',this.value)">${r.jk || ''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${listKey}',${i},'jabatan',this.value)">${r.jabatan || ''}</textarea></td>
+                    ${withAlamat ? `<td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${listKey}',${i},'alamat',this.value)">${r.alamat || ''}</textarea></td>` : ''}
+                    <td style="width:85px;">${isOdd ? `${no}.` : ''}</td>
+                    <td style="width:85px;">${!isOdd ? `${no}.` : ''}</td>
+                    <td class="no-print text-center" style="width:30px;">
+                        <button class="btn btn-xs btn-outline-danger py-0 px-1 btn-del-row" onclick="delTableRow('${fid}','${listKey}',${i})">×</button>
+                    </td>
+                </tr>
+            `;
+        }
+        return `
+            <table class="doc-table">
+                <thead>
+                    <tr>
+                        <th width="40">No</th>
+                        <th>Nama</th>
+                        <th width="85">Jenis Kelamin</th>
+                        <th>${withAlamat ? 'Jabatan/Posisi' : 'Jabatan'}</th>
+                        ${withAlamat ? '<th>Alamat</th>' : ''}
+                        <th colspan="2">Tanda Tangan</th>
+                        <th class="no-print" width="30"></th>
+                    </tr>
+                </thead>
+                <tbody>${body}</tbody>
+            </table>
+            <button class="btn btn-sm btn-outline-primary btn-add-row mb-2" onclick="addTableRow('${fid}','${listKey}',{nama:'',jk:'',jabatan:'',alamat:''})">
+                + Tambah Baris Kolom
+            </button>
+        `;
+    }
+
+    function renderPrioritasTable(fid) {
+        const d = getF(fid);
+        const groups = [
+            { code: 'A', label: 'Program Ketahanan Sosial' },
+            { code: 'B', label: 'Program Pemberdayaan Sosial' },
+            { code: 'C', label: 'Program Infrastruktur' },
+            { code: 'D', label: 'Program Operasional RT' }
+        ];
+        let tbody = '';
+        groups.forEach(g => {
+            if (!Array.isArray(d[g.code])) {
+                d[g.code] = [
+                    { keg: '', manfaat: '', biaya: '', prio: '1' },
+                    { keg: '', manfaat: '', biaya: '', prio: '2' },
+                    { keg: '', manfaat: '', biaya: '', prio: '3' }
+                ];
+            }
+            tbody += `<tr><td class="text-center fw-bold">${g.code}.</td><td colspan="4" class="fw-bold">${g.label}</td></tr>`;
+            d[g.code].forEach((row, idx) => {
+                tbody += `
+                    <tr>
+                        <td class="text-center">${idx + 1}</td>
+                        <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${g.code}',${idx},'keg',this.value)">${row.keg || ''}</textarea></td>
+                        <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${g.code}',${idx},'manfaat',this.value)">${row.manfaat || ''}</textarea></td>
+                        <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${g.code}',${idx},'biaya',this.value)">${row.biaya || ''}</textarea></td>
+                        <td><textarea class="cell-area text-center" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${g.code}',${idx},'prio',this.value)">${row.prio || (idx+1)}</textarea></td>
+                    </tr>
+                `;
+            });
+        });
+        return `
+            <table class="doc-table">
+                <thead>
+                    <tr>
+                        <th width="40">No</th>
+                        <th>Usulan Program/ Kegiatan</th>
+                        <th>Estimasi Manfaat</th>
+                        <th width="140">Perkiraan Biaya</th>
+                        <th width="70">Prioritas</th>
+                    </tr>
+                </thead>
+                <tbody>${tbody}</tbody>
+            </table>
+        `;
+    }
+
+    function renderPenerimaManfaatTables(fid, isPerubahan = false) {
+        const d = getF(fid);
+        const bidang = [
+            { key: 'pm_ketsos', title: 'Program Ketahanan Sosial' },
+            { key: 'pm_pemberdayaan', title: 'Program Pemberdayaan Masyarakat' },
+            { key: 'pm_infra', title: 'Program Infrastruktur' }
+        ];
+        return bidang.map(b => {
+            if (!Array.isArray(d[b.key])) d[b.key] = [{ keg: '', nama: '', jk: '', nik: '', alamat: '', ket: '' }];
+            const rowsHtml = d[b.key].map((r, i) => `
+                <tr>
+                    <td class="text-center">${i + 1}</td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${b.key}',${i},'keg',this.value)">${r.keg || ''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${b.key}',${i},'nama',this.value)">${r.nama || ''}</textarea></td>
+                    <td><textarea class="cell-area text-center" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${b.key}',${i},'jk',this.value)">${r.jk || ''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${b.key}',${i},'nik',this.value)">${r.nik || ''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${b.key}',${i},'alamat',this.value)">${r.alamat || ''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('${fid}','${b.key}',${i},'ket',this.value)">${r.ket || ''}</textarea></td>
+                    <td class="no-print text-center"><button class="btn btn-xs btn-outline-danger py-0 px-1 btn-del-row" onclick="delTableRow('${fid}','${b.key}',${i})">×</button></td>
+                </tr>
+            `).join('');
+            return `
+                <div class="fw-bold mt-2">${b.title}</div>
+                <table class="doc-table">
+                    <thead>
+                        <tr>
+                            <th width="35">No</th>
+                            <th>Kegiatan</th>
+                            <th>Nama</th>
+                            <th width="75">Jenis Kelamin</th>
+                            <th>NIK</th>
+                            <th>Alamat</th>
+                            <th>${isPerubahan ? 'Alasan Penambahan/Perubahan' : 'Keterangan'}</th>
+                            <th class="no-print" width="30"></th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+                <button class="btn btn-xs btn-outline-secondary btn-add-row mb-2" onclick="addTableRow('${fid}','${b.key}',{keg:'',nama:'',jk:'',nik:'',alamat:'',ket:''})">+ Tambah Baris</button>
+            `;
+        }).join('');
+    }
+
+    function handlePhotoUpload(idx, event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const d = getF('f5');
+            if (!Array.isArray(d.slots)) d.slots = [];
+            d.slots[idx].img = e.target.result;
+            saveStore();
+            renderFormCanvas();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function updatePhotoSize(idx, heightVal) {
+        const d = getF('f5');
+        if (d.slots && d.slots[idx]) {
+            d.slots[idx].height = parseInt(heightVal) || 220;
+            saveStore();
+            const box = document.getElementById(`foto_box_${idx}`);
+            const lbl = document.getElementById(`foto_lbl_${idx}`);
+            if (box) box.style.height = `${d.slots[idx].height}px`;
+            if (lbl) lbl.textContent = `${d.slots[idx].height}px`;
+        }
+    }
+
+    function recalcForm12() {
+        const d = getF('f12');
+        let grand = 0;
+        ['A', 'B', 'C', 'D'].forEach(k => {
+            const sub = (d[k] || []).reduce((acc, r) => acc + (parseFloat(String(r.biaya || '0').replace(/[^0-9]/g, '')) || 0), 0);
+            grand += sub;
+            const el = document.getElementById(`f12_sub_${k}`);
+            if (el) el.textContent = new Intl.NumberFormat('id-ID').format(sub);
+        });
+        const gEl = document.getElementById('f12_grand');
+        if (gEl) gEl.textContent = new Intl.NumberFormat('id-ID').format(grand);
+    }
+
+    function renderFormCanvas() {
+        const c = document.getElementById('form_canvas');
+        const g = store.global;
+
+        if (activeFormId === 'f1') {
+            const d = getF('f1');
+            if (!Array.isArray(d.yth_list) || d.yth_list.length === 0) {
+                d.yth_list = [''];
+            }
+            const ythHtml = d.yth_list.map((val, i) => `
+                <div style="${i > 0 ? 'padding-left:34px;' : ''} margin-bottom:2px;">
+                    ${i === 0 ? 'Yth. ' : ''}${i + 1}.
+                    <input type="text" class="paper-input" style="width:320px" value="${String(val || '').replace(/"/g, '&quot;')}"
+                        oninput="d=getF('f1'); d.yth_list[${i}]=this.value; saveStore();">
+                    ${i === 0
+                        ? `<button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 ms-1 btn-add-row" onclick="addArrayItem('f1','yth_list','')">+ Tambah Tujuan</button>`
+                        : `<button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 ms-1 btn-del-row" onclick="delArrayItem('f1','yth_list',${i})">×</button>`
+                    }
+                </div>
+            `).join('');
+
+            c.innerHTML = `
+                ${renderKopHTML()}
+                <div class="text-end mb-3"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f1', 'tgl_surat', '160px', 'Tanggal surat')}</div>
+                <table style="width:100%; margin-bottom:14px;">
+                    <tr><td width="90">Nomor</td><td width="15">:</td><td>${inp('f1', 'nomor', '250px', 'Contoh: 001/RT-01/2026')}</td></tr>
+                    <tr><td>Sifat</td><td>:</td><td>${inp('f1', 'sifat', '250px', 'Contoh: Penting')}</td></tr>
+                    <tr><td>Lampiran</td><td>:</td><td>${inp('f1', 'lampiran', '250px', 'Contoh: -')}</td></tr>
+                    <tr><td>Hal</td><td>:</td><td><strong>Undangan</strong></td></tr>
+                </table>
+                <div class="mb-3">
+                    ${ythHtml}
+                    <div class="mt-1">di - <br><strong style="padding-left:20px;" class="bind-tempat">${g.tempat || 'Tenggarong'}</strong></div>
+                </div>
+                <p style="text-align:justify;">
+                    Berdasarkan/Dalam rangka ${inp('f1', 'dasar', '420px', 'Dasar/tujuan kegiatan rapat')}, maka dengan ini kami mengundang Saudara/Bapak/Ibu untuk hadir pada:
+                </p>
+                <table style="width:100%; margin: 12px 0 16px 24px;">
+                    <tr><td width="110">Hari</td><td width="15">:</td><td>${inp('f1', 'hari', '240px')}</td></tr>
+                    <tr><td>Tanggal</td><td>:</td><td>${inp('f1', 'tanggal', '240px')}</td></tr>
+                    <tr><td>Acara</td><td>:</td><td>${inp('f1', 'acara', '380px')}</td></tr>
+                    <tr><td>Tempat</td><td>:</td><td>${inp('f1', 'tempat', '380px')}</td></tr>
+                </table>
+                <p>Demikian disampaikan untuk dapat dimaklumi, atas kehadirannya diucapkan terima kasih.</p>
+                <div class="row mt-4">
+                    <div class="col-6"></div>
+                    <div class="col-6 text-center">
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div style="height:65px;"></div>
+                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                    </div>
+                </div>
+            `;
+        } else if (activeFormId === 'f2') {
+            c.innerHTML = `
+                <div class="doc-title">
+                    <div>BERITA ACARA PERTEMUAN/MUSYAWARAH *)</div>
+                    <div>PROGRAM RT-KU TERBAIK</div>
+                </div>
+                <p style="text-align:justify;">
+                    Dalam rangka pelaksanaan Program RT-Ku Terbaik Tahun Anggaran ${inp('f2', 'ta', '80px', 'Tahun')}, di Desa/Kelurahan <strong class="bind-desa">${g.desa || '................'}</strong> Kecamatan <strong class="bind-kec">${g.kec || '................'}</strong> Kabupaten Kutai Kartanegara maka pada:
+                </p>
+                <table style="width:100%; margin: 10px 0 12px 24px;">
+                    <tr><td width="110">Hari</td><td width="15">:</td><td>${inp('f2', 'hari', '250px')}</td></tr>
+                    <tr><td>Tanggal</td><td>:</td><td>${inp('f2', 'tanggal', '250px')}</td></tr>
+                    <tr><td>Acara</td><td>:</td><td>${inp('f2', 'acara', '380px')}</td></tr>
+                    <tr><td>Tempat</td><td>:</td><td>${inp('f2', 'tempat', '380px')}</td></tr>
+                </table>
+                <p style="text-align:justify;">
+                    Telah diselenggarakan Pertemuan/Musyawarah RT <strong class="bind-rt">${g.rt || '....'}</strong> Program RT-Ku Terbaik yang dihadiri oleh tokoh masyarakat, wakil masyarakat RT dan unsur lainnya sebagaimana tercantum dalam lampiran daftar hadir.
+                </p>
+                <p class="mb-1">Materi atau topik yang dibahas dalam Forum ini serta yang bertindak selaku pimpinan rapat atau narasumber adalah:</p>
+                <div class="fw-bold">A. Materi atau Topik</div>
+                ${txt('f2', 'materi', 3, 'Uraikan materi atau topik yang dibahas dalam musyawarah')}
+                <div class="fw-bold mt-2">B. Unsur Pimpinan Rapat atau Narasumber</div>
+                <table style="width:100%; margin-bottom:10px;">
+                    <tr><td width="150">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f2', 'pimpinan', '210px')} dari ${inp('f2', 'pimpinan_asal', '170px')}</td></tr>
+                    <tr><td>Sekretaris/Notulis</td><td>:</td><td>${inp('f2', 'notulis', '210px')} dari ${inp('f2', 'notulis_asal', '170px')}</td></tr>
+                    ${renderNarasumberDynamic('f2', 'narasumber_list')}
+                </table>
+                <p class="mb-1">Setelah dilakukan pembahasan dan diskusi terhadap materi atau topik di atas, selanjutnya seluruh peserta memutuskan dan menyepakati beberapa hal yang berketetapan menjadi keputusan akhir dari pertemuan/musyawarah yaitu:</p>
+                ${txt('f2', 'keputusan', 4, 'Uraikan poin-poin keputusan akhir musyawarah')}
+                <p class="mt-2">Demikian Berita Acara Musyawarah ini dibuat dan disahkan dengan penuh tanggung jawab agar dapat dipergunakan sebagaimana mestinya dalam rangka Program RT-Ku Terbaik.</p>
+                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f2', 'tgl_ttd', '170px')}</div>
+                <div class="row text-center mt-3">
+                    <div class="col-4">
+                        <div>Ketua RT</div><div style="height:55px;"></div>
+                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................'}</span> )</div>
+                    </div>
+                    <div class="col-4">
+                        <div>Sekretaris RT</div><div style="height:55px;"></div>
+                        <div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '....................'}</span> )</div>
+                    </div>
+                    <div class="col-4">
+                        <div>Perwakilan Warga / Tokoh Masyarakat</div><div style="height:55px;"></div>
+                        <div class="fw-bold">( ${inp('f2', 'tokoh_ttd', '150px')} )</div>
+                    </div>
+                </div>
+            `;
+        } else if (activeFormId === 'f3') {
+            c.innerHTML = `
+                ${renderKopHTML()}
+                <div class="doc-title">
+                    <div>DAFTAR HADIR ${inp('f3', 'judul_acara', '320px', 'Nama kegiatan/rapat')}</div>
+                    <div>PROGRAM RT-KU TERBAIK TA 2026</div>
+                </div>
+                <table style="width:100%; margin-bottom:10px;">
+                    <tr><td width="160">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
+                    <tr><td>Nama Rapat</td><td>:</td><td>${inp('f3', 'nama_rapat', '380px')}</td></tr>
+                    <tr><td>Tanggal Bulan Tahun</td><td>:</td><td>${inp('f3', 'tgl_rapat', '220px')}</td></tr>
+                </table>
+                <div class="hint-block no-print"><i class="fas fa-info-circle me-1"></i>Kolom Nama, Jenis Kelamin, Jabatan, dan Alamat sengaja dikosongkan tanpa pilihan agar dapat dicetak kosong untuk diisi pulpen maupun diketik langsung.</div>
+                ${renderZigZagSignatureTable('f3', 'rows', true)}
+                <div class="row mt-3">
+                    <div class="col-7"></div>
+                    <div class="col-5 text-center">
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f3', 'tgl_ttd', '150px')}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div style="height:55px;"></div>
+                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                    </div>
+                </div>
+            `;
+        } else if (activeFormId === 'f4') {
+            c.innerHTML = `
+                ${renderKopHTML()}
+                <div class="doc-title">
+                    <div>NOTULEN RAPAT / KEGIATAN ${inp('f4', 'judul', '280px', 'Judul rapat/kegiatan')}</div>
+                    <div>PROGRAM RT-KU TERBAIK</div>
+                </div>
+                <div class="fw-bold">A. Identitas Rapat</div>
+                <table style="width:100%; margin-bottom:8px;">
+                    <tr><td width="150">Hari/tanggal</td><td width="15">:</td><td>${inp('f4', 'hari_tgl', '300px')}</td></tr>
+                    <tr><td>Jam</td><td>:</td><td>${inp('f4', 'jam', '200px')}</td></tr>
+                    <tr><td>Tempat</td><td>:</td><td>${inp('f4', 'tempat', '300px')}</td></tr>
+                    <tr><td>Agenda Rapat</td><td>:</td><td>${inp('f4', 'agenda', '420px')}</td></tr>
+                </table>
+                <div class="fw-bold">B. Pimpinan Rapat dan Narasumber</div>
+                <table style="width:100%; margin-bottom:8px;">
+                    <tr><td width="150">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f4', 'pimpinan', '210px')} dari ${inp('f4', 'pimpinan_dari', '170px')}</td></tr>
+                    <tr><td>Notulis</td><td>:</td><td>${inp('f4', 'notulis', '210px')} dari ${inp('f4', 'notulis_dari', '170px')}</td></tr>
+                    ${renderNarasumberDynamic('f4', 'narasumber_list')}
+                </table>
+                <div class="fw-bold">C. Peserta dan Undangan</div>
+                <table style="width:100%; margin-bottom:8px;">
+                    <tr><td width="150">Jumlah yang hadir</td><td width="15">:</td><td>${inp('f4', 'jml_hadir', '60px')} Orang (Laki-laki: ${inp('f4', 'jml_l', '50px')} Orang, Perempuan: ${inp('f4', 'jml_p', '50px')} Orang)</td></tr>
+                    <tr><td>Undangan terdiri dari</td><td>:</td><td>${inp('f4', 'unsur_undangan', '420px')}</td></tr>
+                    <tr><td>Jumlah Undangan</td><td>:</td><td>${inp('f4', 'jml_undangan', '60px')} Orang (Daftar Hadir sebagaimana terlampir)</td></tr>
+                </table>
+                <div class="fw-bold">D. Materi atau Topik yang dibahas meliputi:</div>
+                ${txt('f4', 'materi', 2)}
+                <div class="fw-bold mt-2">E. Susunan Acara</div>
+                <ol style="margin-bottom:8px;">
+                    <li>Pembukaan</li><li>Pembacaan Doa</li><li>Sambutan-sambutan</li>
+                    <li>Penyampaian Materi</li><li>Tanya jawab dan Pembahasan Materi atau Topik</li>
+                    <li>Kesepakatan hasil</li><li>Penutup</li>
+                </ol>
+                <div class="fw-bold">F. Proses Pelaksanaan Musyawarah</div>
+                <div><em>1. Pembukaan</em></div>${txt('f4', 'pembukaan', 2)}
+                <div><em>2. Sambutan-sambutan</em></div>${txt('f4', 'sambutan', 2)}
+                <div><em>3. Penyampaian Materi</em></div>${txt('f4', 'penyampaian', 2)}
+                <div><em>4. Tanya jawab dan Pembahasan Materi atau Topik</em></div>
+                <div>Pertanyaan :</div>${txt('f4', 'pertanyaan', 2)}
+                <div>Jawaban :</div>${txt('f4', 'jawaban', 2)}
+                <div class="fw-bold mt-2">G. Kesepakatan Hasil</div>
+                ${txt('f4', 'kesepakatan', 3)}
+                <div class="fw-bold mt-2">H. Penutup</div>
+                <p>Rapat ditutup pada pukul ${inp('f4', 'jam_tutup', '70px')} WITA. Seluruh peserta rapat menyatakan setuju/sepakat terhadap hasil musyawarah yang telah ditetapkan.</p>
+                <div class="row text-center mt-3">
+                    <div class="col-6">
+                        <div>Mengetahui,<br>Ketua RT</div><div style="height:55px;"></div>
+                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                    </div>
+                    <div class="col-6">
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f4', 'tgl_ttd', '150px')}<br>Dibuat Oleh Notulis</div><div style="height:55px;"></div>
+                        <div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '....................................'}</span> )</div>
+                    </div>
+                </div>
+            `;
+        } else if (activeFormId === 'f5') {
+            const d = getF('f5');
+            if (!Array.isArray(d.slots) || d.slots.length === 0) {
+                d.slots = Array.from({ length: 4 }, () => ({ ket: '', tgl: '', tempat: '', img: '', height: 220 }));
+            }
+            const slotsHtml = d.slots.map((s, i) => {
+                const h = s.height || 220;
+                return `
+                    <div class="col-md-6">
+                        <div class="foto-slot">
+                            <div class="foto-preview" id="foto_box_${i}" style="height:${h}px;">
+                                ${s.img ? `<img src="${s.img}" alt="Foto ${i+1}">` : `<span class="text-muted small no-print">Slot Foto ${i+1}</span>`}
+                            </div>
+                            <div class="foto-controls no-print mb-2">
+                                <input type="file" accept="image/*" class="form-control form-control-sm mb-1" onchange="handlePhotoUpload(${i}, event)">
+                                <div class="d-flex align-items-center gap-2 small">
+                                    <span>Tinggi Foto:</span>
+                                    <input type="range" class="form-range flex-grow-1" min="120" max="450" step="10" value="${h}" oninput="updatePhotoSize(${i}, this.value)">
+                                    <span id="foto_lbl_${i}" class="badge bg-secondary">${h}px</span>
+                                </div>
+                            </div>
+                            <div class="small"><strong>Keterangan Foto Kegiatan/Barang:</strong></div>
+                            <textarea class="paper-textarea small" rows="2" oninput="autoGrow(this); updateRowField('f5','slots',${i},'ket',this.value)">${s.ket || ''}</textarea>
+                            <div class="small mt-1">Tanggal: <input type="text" class="paper-input" style="width:140px" value="${s.tgl || ''}" oninput="updateRowField('f5','slots',${i},'tgl',this.value)"></div>
+                            <div class="small mt-1">Tempat: <input type="text" class="paper-input" style="width:145px" value="${s.tempat || ''}" oninput="updateRowField('f5','slots',${i},'tempat',this.value)"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            c.innerHTML = `
+                <div class="doc-title">
+                    <div>DOKUMENTASI KEGIATAN/BARANG</div>
+                    <div>PROGRAM RT-KU TERBAIK TA 2026</div>
+                </div>
+                <table style="width:100%; margin-bottom:12px;">
+                    <tr><td width="140">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
+                </table>
+                <div class="row g-2">${slotsHtml}</div>
+                <button class="btn btn-sm btn-outline-primary btn-add-row mt-2" onclick="addTableRow('f5','slots',{ket:'',tgl:'',tempat:'',img:'',height:220})">+ Tambah Slot Foto</button>
+            `;
+        } else if (activeFormId === 'f6') {
+            const d = getF('f6');
+            if (!Array.isArray(d.penduduk) || d.penduduk.length === 0) {
+                d.penduduk = [{ nama: '', nik: '', kk: '', jk: '', tmpt: '', tgllhr: '', agama: '', pend: '', kerja: '', alamat: '', rt: g.rt || '', desa: g.desa || '', kec: g.kec || '', kab: 'Kutai Kartanegara', prov: 'Kalimantan Timur' }];
+            }
+            const colsF6 = ['No.', 'Nama Lengkap', 'NIK', 'No. KK', 'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir', 'Agama', 'Pendidikan', 'Pekerjaan', 'Alamat Lengkap', 'RT', 'Kelurahan/Desa', 'Kecamatan', 'Kabupaten', 'Provinsi'];
+            const rows = d.penduduk.map((p, i) => `
+                <tr>
+                    <td class="text-center">${i + 1}</td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'nama',this.value)">${p.nama||''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'nik',this.value)">${p.nik||''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'kk',this.value)">${p.kk||''}</textarea></td>
+                    <td><textarea class="cell-area text-center" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'jk',this.value)">${p.jk||''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'tmpt',this.value)">${p.tmpt||''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'tgllhr',this.value)">${p.tgllhr||''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'agama',this.value)">${p.agama||''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'pend',this.value)">${p.pend||''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'kerja',this.value)">${p.kerja||''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'alamat',this.value)">${p.alamat||''}</textarea></td>
+                    <td><textarea class="cell-area text-center" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'rt',this.value)">${p.rt !== undefined ? p.rt : (g.rt||'')}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'desa',this.value)">${p.desa !== undefined ? p.desa : (g.desa||'')}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'kec',this.value)">${p.kec !== undefined ? p.kec : (g.kec||'')}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'kab',this.value)">${p.kab !== undefined ? p.kab : 'Kutai Kartanegara'}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f6','penduduk',${i},'prov',this.value)">${p.prov !== undefined ? p.prov : 'Kalimantan Timur'}</textarea></td>
+                    <td class="no-print text-center"><button class="btn btn-xs btn-outline-danger py-0 px-1 btn-del-row" onclick="delTableRow('f6','penduduk',${i})">×</button></td>
+                </tr>
+            `).join('');
+            c.innerHTML = `
+                <div class="doc-title"><div>DATABASE PENDUDUK DI WILAYAH RT</div></div>
+                <table style="width:100%; margin-bottom:10px;">
+                    <tr><td width="140">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
+                </table>
+                <div class="hint-block no-print"><i class="fas fa-arrows-left-right me-1"></i>Geser sudut kanan bawah judul kolom untuk memperlebar/mempersempit kolom. Saat dicetak, halaman otomatis menyesuaikan Landscape agar seluruh 16 kolom terbaca utuh.</div>
+                <div class="table-responsive">
+                    <table class="doc-table" style="font-size:8.5pt;">
+                        <thead>
+                            <tr>
+                                ${colsF6.map(col => `<th><div class="th-resizable">${col}</div></th>`).join('')}
+                                <th class="no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                <button class="btn btn-sm btn-outline-primary btn-add-row mt-1" onclick="addTableRow('f6','penduduk',{nama:'',nik:'',kk:'',jk:'',tmpt:'',tgllhr:'',agama:'',pend:'',kerja:'',alamat:'',rt:store.global.rt||'',desa:store.global.desa||'',kec:store.global.kec||'',kab:'Kutai Kartanegara',prov:'Kalimantan Timur'})">+ Tambah Data Warga</button>
+            `;
+        } else if (activeFormId === 'f7') {
+            const d = getF('f7');
+            const tablesDef = [
+                { key: 't1', title: 'A. Data Ekonomi Warga di Lingkungan RT', cols: ['Nama Kepala Keluarga','NIK','Alamat','Jumlah Anggota Keluarga','Pekerjaan Utama','Status Pekerjaan (Tetap/Tidak Tetap)','Penghasilan per Bulan','Memiliki Usaha (Ya/Tidak)','Jenis Usaha','Memiliki Jaminan Sosial','Penerima Bantuan Sosial','Kategori Ekonomi (Miskin/Rentan Miskin/Mampu)','Keterangan'] },
+                { key: 't2', title: 'B. Data Anak Yatim/Piatu/Yatim Piatu Miskin di Lingkungan RT', cols: ['Nama Anak','NIK','Jenis Kelamin','Tanggal Lahir','Usia','Nama Wali/Pengasuh','Hubungan dengan anak','Alamat','Status Anak Yatim/Piatu/Yatim Piatu','Pendidikan Saat Ini','Kondisi Ekonomi Keluarga','Memiliki Jaminan Sosial','Penerima Bantuan Sosial','Kebutuhan Prioritas','Keterangan'] },
+                { key: 't3', title: 'C. Data Lansia Terlantar Miskin di Lingkungan RT', cols: ['Nama Lansia','NIK','Jenis Kelamin','Tanggal Lahir','Usia','Alamat','Status Perkawinan','Tinggal Bersama','Kondisi Kesehatan','Tingkat Ketelantaran','Kondisi Ekonomi Keluarga','Memiliki Jaminan Sosial','Penerima Bantuan Sosial','Kebutuhan Prioritas','Keterangan'] },
+                { key: 't4', title: 'D. Data Warga Penerima Bantuan di Lingkungan RT', cols: ['Nama Kepala Keluarga','NIK','Alamat','Jumlah Anggota Keluarga','Kategori Sasaran (Miskin/Rentan/Lansia/Disabilitas/Yatim Piatu)','Jenis Bantuan Diterima','Sumber Bantuan (Pusat/Provinsi/Kabupaten/Desa/Swasta)','Tahun Penerimaan','Status Bantuan (Aktif/Tidak Aktif)','Keterangan'] },
+                { key: 't5', title: 'E. Data Warga Rumah Tidak Layak Huni (RTLH) di Lingkungan RT', cols: ['Nama Kepala Keluarga','NIK','Alamat','Jumlah Anggota Keluarga','Status Rumah (Milik/Kontrak/Menumpang)','Kondisi Rumah (Ringan/Sedang/Berat)','Jumlah Kriteria Miskin BPS yang Terpenuhi','Kategori Kemiskinan','Pernah Menerima Bantuan RTLH (Ya/Tidak)','Rekomendasi RT','Keterangan'] },
+                { key: 't6', title: 'F. Data Anak Usia Sekolah di Lingkungan RT', cols: ['Nama Kepala Keluarga','NIK','Alamat','Jumlah Anak Usia Sekolah','Jumlah Anak PAUD/TK','Jumlah Anak SD','Jumlah Anak SMP','Jumlah Anak SMA/SMK','Mahasiswa','Tidak Sekolah','Putus Sekolah','Penerima Bantuan Pendidikan (Ya/Tidak)','Keterangan'] },
+                { key: 't7', title: 'G. Data Kesehatan Warga di Lingkungan RT', cols: ['Nama Kepala Keluarga','NIK','Alamat','Jumlah Balita (0–59 Bulan)','Jumlah Ibu Hamil','Jumlah Lansia (≥60 Tahun)','Jumlah Penyandang Disabilitas','Anggota Keluarga Sakit Menahun/Kronis','Memiliki JKN/BPJS (Ya/Tidak)','Keterangan'] }
+            ];
+            const secHtml = tablesDef.map(tb => {
+                if (!Array.isArray(d[tb.key])) d[tb.key] = [];
+                const trs = d[tb.key].map((rowObj, rIdx) => `
+                    <tr>
+                        <td class="text-center">${rIdx + 1}</td>
+                        ${tb.cols.map((_, cIdx) => `<td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f7','${tb.key}',${rIdx},'c${cIdx}',this.value)">${rowObj['c'+cIdx] || ''}</textarea></td>`).join('')}
+                        <td class="no-print text-center"><button class="btn btn-xs btn-outline-danger py-0 px-1 btn-del-row" onclick="delTableRow('f7','${tb.key}',${rIdx})">×</button></td>
+                    </tr>
+                `).join('');
+                return `
+                    <div class="fw-bold mt-3">${tb.title}</div>
+                    <div class="table-responsive">
+                        <table class="doc-table" style="font-size:8pt;">
+                            <thead>
+                                <tr>
+                                    <th width="30">No.</th>
+                                    ${tb.cols.map(col => `<th><div class="th-resizable">${col}</div></th>`).join('')}
+                                    <th class="no-print" width="28"></th>
+                                </tr>
+                            </thead>
+                            <tbody>${trs}</tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-xs btn-outline-primary btn-add-row mb-2" onclick="addTableRow('f7','${tb.key}',{})">+ Tambah Baris</button>
+                `;
+            }).join('');
+
+            c.innerHTML = `
+                <div class="doc-title"><div>DATA DASAR LINGKUNGAN RT</div></div>
+                <table style="width:100%; margin-bottom:10px;">
+                    <tr><td width="150">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
+                    <tr><td>Periode Pendataan</td><td>:</td><td>${inp('f7', 'periode', '220px', 'Contoh: Agustus 2026')}</td></tr>
+                </table>
+                <div class="hint-block no-print"><i class="fas fa-arrows-left-right me-1"></i>Setiap judul kolom dapat ditarik lebarnya (resize) di pojok kanan bawah sel header, dan tinggi baris otomatis menyesuaikan teks agar tidak ada kata yang terpotong saat cetak.</div>
+                ${secHtml}
+                <div class="row mt-4">
+                    <div class="col-7"></div>
+                    <div class="col-5 text-center">
+                        <div><span class="bind-desa">${g.desa || '................'}</span>, ${inp('f7', 'tgl_ttd', '150px')}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div style="height:55px;"></div>
+                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                    </div>
+                </div>
+            `;
+        } else if (activeFormId === 'f8') {
+            c.innerHTML = `
+                <div class="doc-title">
+                    <div>BERITA ACARA MUSYAWARAH RT</div>
+                    <div>KEGIATAN MUSYAWARAH PERENCANAAN</div>
+                    <div style="font-weight:normal; font-size:11pt;">Nomor: ${inp('f8', 'nomor', '240px')}</div>
+                </div>
+                <p style="text-align:justify;">
+                    Pada hari ini, ${inp('f8', 'hari', '100px')}, tanggal ${inp('f8', 'tanggal', '50px')} bulan ${inp('f8', 'bulan', '110px')} tahun ${inp('f8', 'tahun', '70px')}, bertempat di Desa/Kelurahan <strong class="bind-desa">${g.desa || '................'}</strong> Kecamatan <strong class="bind-kec">${g.kec || '................'}</strong>, telah dilaksanakan Musyawarah RT dalam rangka penyusunan Usulan Kegiatan Program RT-Ku Terbaik Tahun ${inp('f8', 'ta', '70px')}.
+                </p>
+
+                <div class="fw-bold mt-2">A. DASAR PELAKSANAAN</div>
+                <div>Musyawarah RT ini diselenggarakan berdasarkan:</div>
+                <ol class="mb-2">
+                    <li>Program RT-Ku Terbaik Pemerintah Kabupaten Kutai Kartanegara;</li>
+                    <li>Pedoman pelaksanaan dari Dinas Pemberdayaan Masyarakat dan Desa;</li>
+                    <li>Instruksi Camat/Desa/Kelurahan mengenai penyusunan usulan kegiatan RT.</li>
+                </ol>
+
+                <div class="fw-bold mt-2">B. PESERTA MUSYAWARAH</div>
+                <div>1. Peserta Rapat terdiri dari:</div>
+                ${txt('f8', 'peserta_terdiri', 2)}
+                <table style="width:100%; margin: 4px 0 8px 18px;">
+                    <tr><td width="190">Jumlah yang Hadir</td><td width="15">:</td><td>${inp('f8', 'hadir_tot', '70px')} Orang</td></tr>
+                    <tr><td>Laki-Laki</td><td>:</td><td>${inp('f8', 'hadir_l', '70px')} Orang</td></tr>
+                    <tr><td>Perempuan</td><td>:</td><td>${inp('f8', 'hadir_p', '70px')} Orang</td></tr>
+                </table>
+                <div>2. Undangan terdiri dari:</div>
+                ${txt('f8', 'undangan_terdiri', 2)}
+                <table style="width:100%; margin: 4px 0 6px 18px;">
+                    <tr><td width="190">Jumlah Undangan yang Hadir</td><td width="15">:</td><td>${inp('f8', 'und_tot', '70px')} Orang</td></tr>
+                    <tr><td>Laki-Laki</td><td>:</td><td>${inp('f8', 'und_l', '70px')} Orang</td></tr>
+                    <tr><td>Perempuan</td><td>:</td><td>${inp('f8', 'und_p', '70px')} Orang</td></tr>
+                </table>
+                <div class="mb-2">Dengan daftar hadir sebagaimana terlampir</div>
+
+                <div class="fw-bold mt-2">C. AGENDA MUSYAWARAH</div>
+                <div>Agenda musyawarah meliputi:</div>
+                <ol class="mb-2">
+                    <li>Pembukaan oleh Ketua RT</li>
+                    <li>Penyampaian informasi Program RT-Ku Terbaik</li>
+                    <li>Penyampaian usulan kebutuhan RT oleh warga</li>
+                    <li>Pembahasan dan penetapan usulan kegiatan</li>
+                    <li>Penetapan prioritas kegiatan RT</li>
+                    <li>Penetapan penerima manfaat/sasaran program</li>
+                    <li>Penetapan lokasi kegiatan yang dimanfaatkan bersama</li>
+                    <li>Penunjukan Tim Pelaksana RT</li>
+                    <li>Penutup</li>
+                </ol>
+
+                <div class="fw-bold mt-2">D. HASIL MUSYAWARAH</div>
+                <div><strong>1. Identifikasi Permasalahan/Kebutuhan RT</strong></div>
+                <div>Dari hasil diskusi warga, teridentifikasi kebutuhan sebagai berikut:</div>
+                ${txt('f8', 'identifikasi', 3)}
+
+                <div class="mt-2"><strong>2. Usulan Program/Kegiatan</strong></div>
+                <div>Setelah mempertimbangkan kebutuhan serta menu kegiatan RT-Ku Terbaik, dirumuskan beberapa alternatif kegiatan:</div>
+                ${renderPrioritasTable('f8')}
+
+                <div><strong>3. Alasan Prioritas</strong></div>
+                <div>Musyawarah secara mufakat menetapkan kegiatan prioritas dengan Alasan Prioritas sebagai berikut:</div>
+                ${txt('f8', 'alasan', 2)}
+
+                <div class="mt-2"><strong>4. Penetapan penerima manfaat/sasaran program</strong></div>
+                ${renderPenerimaManfaatTables('f8', false)}
+
+                <div class="mt-2"><strong>5. Penetapan lokasi kegiatan yang dimanfaatkan bersama</strong></div>
+                <div>Berdasarkan hasil musyawarah ditetapkan lokasi kegiatan yang digunakan/manfaatkan bersama sebagai berikut:</div>
+                ${txt('f8', 'lokasi_bersama', 2)}
+
+                <div class="fw-bold mt-2">E. DOKUMENTASI MUSYAWARAH</div>
+                <div>Dokumen yang melekat pada BA Musyawarah ini:</div>
+                <ol class="mb-2">
+                    <li>Daftar Hadir</li>
+                    <li>Notulen Musyawarah</li>
+                    <li>Foto Musyawarah dengan menyertakan keterangan waktu dan tempat.</li>
+                </ol>
+
+                <div class="fw-bold mt-2">F. PENUTUP</div>
+                <p>Musyawarah ditutup pada pukul ${inp('f8', 'jam_tutup', '100px')} dan seluruh peserta menyatakan setuju dengan hasil keputusan yang tertuang pada Berita Acara ini.</p>
+
+                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f8', 'tgl_ttd', '160px')}</div>
+                <div class="row text-center mb-3">
+                    <div class="col-4"><div>Mengetahui,<br>Ketua RT</div><div style="height:50px;"></div><div class="fw-bold">( <span class="bind-ketua">${g.ketua || '................'}</span> )</div></div>
+                    <div class="col-4"><div><br>Sekretaris RT</div><div style="height:50px;"></div><div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '................'}</span> )</div></div>
+                    <div class="col-4"><div>Perwakilan Warga/<br>Tokoh Masyarakat</div><div style="height:50px;"></div><div class="fw-bold">( ${inp('f8', 'tokoh_ttd', '140px')} )</div></div>
+                </div>
+                <div class="text-center mb-3">
+                    <div>Mengetahui,<br>Pendekar Idaman Terbaik Desa/Kelurahan</div><div style="height:50px;"></div>
+                    <div class="fw-bold">( ${inp('f8', 'pendekar_ttd', '180px')} )</div>
+                </div>
+                <div class="fw-bold">Mengetahui Perwakilan Masyarakat</div>
+                ${renderZigZagSignatureTable('f8', 'perwakilan', false)}
+            `;
+        } else if (activeFormId === 'f9') {
+            const d = getF('f9');
+            if (!Array.isArray(d.peserta) || d.peserta.length === 0) {
+                d.peserta = [
+                    { nama: g.ketua || '', unsur: 'Ketua RT' },
+                    { nama: g.sekretaris || '', unsur: 'Sekretaris RT' },
+                    { nama: g.bendahara || '', unsur: 'Bendahara RT' },
+                    { nama: '', unsur: 'Tokoh Masyarakat' },
+                    { nama: '', unsur: 'Warga' }
+                ];
+            }
+            const pRows = d.peserta.map((p, i) => `
+                <tr>
+                    <td class="text-center">${i + 1}</td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f9','peserta',${i},'nama',this.value)">${p.nama||''}</textarea></td>
+                    <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f9','peserta',${i},'unsur',this.value)">${p.unsur||''}</textarea></td>
+                    <td class="no-print text-center"><button class="btn btn-xs btn-outline-danger py-0 px-1 btn-del-row" onclick="delTableRow('f9','peserta',${i})">×</button></td>
+                </tr>
+            `).join('');
+            c.innerHTML = `
+                <div class="doc-title">
+                    <div>NOTULEN RAPAT</div>
+                    <div>KEGIATAN MUSYAWARAH PERENCANAAN</div>
+                    <div>PROGRAM RT-KU TERBAIK</div>
+                </div>
+
+                <div class="fw-bold">A. IDENTITAS RAPAT</div>
+                <table style="width:100%; margin-bottom:8px;">
+                    <tr><td width="130">Hari / tanggal</td><td width="15">:</td><td>${inp('f9', 'hari_tgl', '280px')}</td></tr>
+                    <tr><td>Waktu</td><td>:</td><td>${inp('f9', 'waktu', '180px')}</td></tr>
+                    <tr><td>Tempat</td><td>:</td><td>${inp('f9', 'tempat', '280px')}</td></tr>
+                    <tr><td>Agenda Rapat</td><td>:</td><td>Musyawarah RT dalam rangka pembahasan dan penetapan usulan kegiatan Program RT-Ku Terbaik Tahun ${inp('f9', 'tahun', '70px')}</td></tr>
+                </table>
+
+                <div class="fw-bold">B. PIMPINAN DAN PETUGAS RAPAT</div>
+                <table style="width:100%; margin-bottom:8px;">
+                    <tr><td width="130">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f9', 'pimpinan', '300px')}</td></tr>
+                    <tr><td>Notulis</td><td>:</td><td>${inp('f9', 'notulis', '300px')}</td></tr>
+                </table>
+
+                <div class="fw-bold">C. DAFTAR PESERTA RAPAT</div>
+                <div>Peserta rapat terdiri dari pengurus RT dan warga, antara lain:</div>
+                <table class="doc-table">
+                    <thead><tr><th width="45">No</th><th>Nama</th><th>Jabatan/Unsur</th><th class="no-print" width="32"></th></tr></thead>
+                    <tbody>${pRows}</tbody>
+                </table>
+                <button class="btn btn-xs btn-outline-primary btn-add-row mb-2" onclick="addTableRow('f9','peserta',{nama:'',unsur:'Warga'})">+ Tambah Peserta</button>
+                <div>Jumlah peserta hadir ${inp('f9', 'jml_hadir', '60px')} orang (Daftar hadir terlampir)</div>
+
+                <div class="fw-bold mt-2">D. URAIAN JALANNYA RAPAT</div>
+                <div><strong>1. Pembukaan</strong></div>
+                <p class="mb-1">Rapat dibuka pada pukul ${inp('f9', 'jam_buka', '70px')} WITA, dilanjutkan dengan penyampaian maksud dan tujuan rapat.</p>
+
+                <div><strong>2. Penyampaian Informasi Program RT-Ku Terbaik</strong></div>
+                <div>Disampaikan penjelasan singkat mengenai:</div>
+                <ul class="mb-1">
+                    <li>Tujuan Program RT-Ku Terbaik</li>
+                    <li>Bidang kegiatan (Ketahanan Sosial, Pemberdayaan Masyarakat, Infrastruktur, Operasional RT)</li>
+                    <li>Ketentuan penggunaan dana dan kewajiban administrasi RT</li>
+                </ul>
+
+                <div><strong>3. Penyampaian Usulan dari Warga</strong></div>
+                <div>Beberapa usulan kegiatan yang disampaikan oleh warga antara lain:</div>
+                ${txt('f9', 'usulan_warga', 3)}
+
+                <div class="mt-2"><strong>4. Pembahasan dan Klarifikasi Usulan</strong></div>
+                <div>Rapat membahas kelayakan usulan dengan mempertimbangkan:</div>
+                <ul class="mb-1">
+                    <li>Kesesuaian dengan menu kegiatan Program RT-Ku Terbaik</li>
+                    <li>Kebutuhan dan manfaat bagi warga</li>
+                    <li>Kemampuan pelaksanaan secara kolektif</li>
+                </ul>
+                ${txt('f9', 'pembahasan_klarifikasi', 2, 'Opsional: catatan hasil pembahasan/klarifikasi usulan warga')}
+
+                <div class="mt-2"><strong>5. Penetapan Usulan Kegiatan Prioritas</strong></div>
+                <div>Berdasarkan musyawarah mufakat, disepakati kegiatan prioritas sebagai berikut:</div>
+                ${renderPrioritasTable('f9')}
+
+                <div class="fw-bold mt-2">E. KEPUTUSAN RAPAT</div>
+                <div>Hasil musyawarah RT memutuskan bahwa:</div>
+                <ol class="mb-2">
+                    <li>RT akan mengusulkan kegiatan Program RT-Ku Terbaik sesuai hasil musyawarah;</li>
+                    <li>Tim Pelaksana RT bertanggung jawab melaksanakan kegiatan secara kolektif;</li>
+                    <li>Seluruh proses pelaksanaan akan mengikuti ketentuan Program RT-Ku Terbaik dan Peraturan Bupati yang berlaku;</li>
+                    <li>dst.</li>
+                </ol>
+
+                <div class="fw-bold mt-2">F. PENUTUP</div>
+                <p>Rapat ditutup pada pukul ${inp('f9', 'jam_tutup', '70px')} WITA. Seluruh peserta rapat menyatakan setuju terhadap hasil musyawarah yang telah ditetapkan. Notulen ini dibuat sebagai dokumentasi resmi musyawarah RT.</p>
+
+                <div class="row text-center mt-3">
+                    <div class="col-6"><div>Mengetahui,<br>Ketua RT</div><div style="height:55px;"></div><div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div></div>
+                    <div class="col-6"><div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f9', 'tgl_ttd', '150px')}<br>Dibuat Oleh Notulis</div><div style="height:55px;"></div><div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '....................................'}</span> )</div></div>
+                </div>
+            `;
+        } else if (activeFormId === 'f10') {
+            c.innerHTML = `
+                <div class="doc-title">
+                    <div>BERITA ACARA</div>
+                    <div>MUSYAWARAH PERUBAHAN/PENAMBAHAN SASARAN</div>
+                    <div>KEGIATAN ${inp('f10', 'nama_kegiatan', '320px')}</div>
+                    <div>PROGRAM RT-KU TERBAIK</div>
+                </div>
+                <p style="text-align:justify;">
+                    Dalam rangka pelaksanaan Program RT-Ku Terbaik Tahun Anggaran ${inp('f10', 'ta', '70px')}, pada hari ini, ${inp('f10', 'hari', '90px')}, jam ${inp('f10', 'jam', '95px')} tanggal ${inp('f10', 'tanggal', '45px')} bulan ${inp('f10', 'bulan', '105px')} tahun ${inp('f10', 'tahun', '65px')}, bertempat di RT <strong class="bind-rt">${g.rt || '....'}</strong> Desa/Kelurahan <strong class="bind-desa">${g.desa || '................'}</strong> Kecamatan <strong class="bind-kec">${g.kec || '................'}</strong>, telah dilaksanakan Pertemuan/Musyawarah RT dalam rangka perubahan/penambahan sasaran yang dihadiri oleh tokoh masyarakat, wakil masyarakat RT dan unsur lainnya sebagaimana tercantum dalam lampiran daftar hadir.
+                </p>
+                <div class="fw-bold">A. Materi atau Topik</div>
+                <div>Perubahan/penambahan sasaran atau penerima manfaat kegiatan:</div>
+                ${txt('f10', 'materi', 2)}
+
+                <div class="fw-bold mt-2">B. Unsur Pimpinan Rapat atau Narasumber</div>
+                <table style="width:100%; margin-bottom:8px;">
+                    <tr><td width="150">Pimpinan Rapat</td><td width="15">:</td><td>${inp('f10', 'pimpinan', '210px')} dari ${inp('f10', 'pimpinan_dari', '160px')}</td></tr>
+                    <tr><td>Sekretaris/Notulis</td><td>:</td><td>${inp('f10', 'notulis', '210px')} dari ${inp('f10', 'notulis_dari', '160px')}</td></tr>
+                    ${renderNarasumberDynamic('f10', 'narasumber_list')}
+                </table>
+
+                <div class="fw-bold mt-2">C. Penetapan Penambahan/Perubahan Sasaran Penerima Manfaat</div>
+                ${renderPenerimaManfaatTables('f10', true)}
+
+                <div class="fw-bold mt-2">D. Penetapan lokasi kegiatan yang dimanfaatkan bersama</div>
+                ${txt('f10', 'lokasi', 2)}
+
+                <div class="fw-bold mt-2">E. Dokumentasi Musyawarah</div>
+                <ol class="mb-2">
+                    <li>Daftar Hadir</li>
+                    <li>Notulen Musyawarah</li>
+                    <li>Foto Musyawarah dengan menyertakan keterangan waktu dan tempat.</li>
+                </ol>
+
+                <div class="fw-bold mt-2">F. Penutup</div>
+                <p class="mt-1">Musyawarah ditutup pada pukul ${inp('f10', 'jam_tutup', '100px')} dan seluruh peserta menyatakan setuju dengan hasil keputusan yang tertuang pada Berita Acara ini.</p>
+
+                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f10', 'tgl_ttd', '160px')}</div>
+                <div class="row text-center mb-3">
+                    <div class="col-4"><div>Mengetahui,<br>Ketua RT</div><div style="height:50px;"></div><div class="fw-bold">( <span class="bind-ketua">${g.ketua || '................'}</span> )</div></div>
+                    <div class="col-4"><div><br>Sekretaris RT</div><div style="height:50px;"></div><div class="fw-bold">( <span class="bind-sekretaris">${g.sekretaris || '................'}</span> )</div></div>
+                    <div class="col-4"><div>Perwakilan Warga/<br>Tokoh Masyarakat</div><div style="height:50px;"></div><div class="fw-bold">( ${inp('f10', 'tokoh_ttd', '140px')} )</div></div>
+                </div>
+                <div class="text-center mb-3">
+                    <div>Mengetahui,<br>Pendekar Idaman Terbaik Desa/Kelurahan</div><div style="height:50px;"></div>
+                    <div class="fw-bold">( ${inp('f10', 'pendekar_ttd', '180px')} )</div>
+                </div>
+                <div class="fw-bold">Mengetahui Perwakilan Masyarakat</div>
+                ${renderZigZagSignatureTable('f10', 'perwakilan', false)}
+            `;
+        } else if (activeFormId === 'f11') {
+            c.innerHTML = `
+                ${renderKopHTML()}
+                <div class="doc-title">
+                    <div>SURAT PERNYATAAN KETUA RT</div>
+                    <div>TENTANG USULAN SASARAN PENERIMA MANFAAT</div>
+                    <div>PROGRAM RT-KU TERBAIK</div>
+                </div>
+                <p>Yang bertanda tangan di bawah ini:</p>
+                <table style="width:100%; margin: 0 0 14px 24px;">
+                    <tr><td width="140">Nama</td><td width="15">:</td><td><strong class="bind-ketua">${g.ketua || '....................................'}</strong></td></tr>
+                    <tr><td>Jabatan</td><td>:</td><td>${inp('f11', 'jabatan', '260px', 'Contoh: Ketua RT 001')}</td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
+                </table>
+                <p style="text-align:justify;">
+                    Dengan ini menyatakan bahwa usulan sasaran penerima manfaat Program RT-Ku Terbaik yang diajukan oleh RT <strong class="bind-rt">${g.rt || '....'}</strong> telah melalui proses pendataan, verifikasi, dan musyawarah di tingkat RT sesuai ketentuan yang berlaku.
+                </p>
+                <p class="mb-1">Selanjutnya, saya menyatakan bahwa:</p>
+                <ol style="text-align:justify;">
+                    <li>Data calon penerima manfaat yang diusulkan merupakan warga yang berdomisili di wilayah RT yang saya pimpin.</li>
+                    <li>Calon penerima manfaat telah memenuhi kriteria dan persyaratan yang ditetapkan dalam program dimaksud.</li>
+                    <li>Berdasarkan hasil pendataan dan verifikasi yang dilakukan, calon penerima manfaat yang diusulkan tidak sedang menerima bantuan atau program sejenis dari pemerintah pusat, pemerintah daerah, pemerintah desa/kelurahan, maupun pihak lain yang memiliki tujuan dan bentuk manfaat yang sama.</li>
+                    <li>Apabila di kemudian hari ditemukan adanya penerima manfaat yang terbukti menerima bantuan atau program sejenis sebagaimana dimaksud pada angka 3, maka saya bersedia bertanggung jawab untuk melakukan klarifikasi dan perbaikan data sesuai ketentuan yang berlaku.</li>
+                    <li>Seluruh data dan informasi yang disampaikan dalam usulan ini adalah benar dan dapat dipertanggungjawabkan.</li>
+                </ol>
+                <p>Demikian surat pernyataan ini dibuat dengan sebenarnya untuk digunakan sebagaimana mestinya.</p>
+                <div class="row mt-4">
+                    <div class="col-6"></div>
+                    <div class="col-6 text-center">
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f11', 'tgl_ttd', '150px')}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div class="materai-box">Materai<br>10.000</div>
+                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                    </div>
+                </div>
+            `;
+        } else if (activeFormId === 'f12') {
+            const d = getF('f12');
+            const bidang = [
+                { k: 'A', nama: 'Ketahanan Sosial' },
+                { k: 'B', nama: 'Pemberdayaan masyarakat' },
+                { k: 'C', nama: 'Infrastruktur' },
+                { k: 'D', nama: 'Operasional RT' }
+            ];
+            let tbody = '';
+            bidang.forEach(b => {
+                if (!Array.isArray(d[b.k]) || d[b.k].length === 0) {
+                    d[b.k] = [{ kegiatan: '', latar: '', tujuan: '', lokasi: '', biaya: '', sumber: '', jadwal: '' }];
+                }
+                tbody += `<tr class="table-secondary fw-bold"><td class="text-center">${b.k}</td><td colspan="7">${b.nama}</td><td class="no-print"></td></tr>`;
+                d[b.k].forEach((r, idx) => {
+                    tbody += `
+                        <tr>
+                            <td class="text-center">${idx + 1}</td>
+                            <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f12','${b.k}',${idx},'kegiatan',this.value)">${r.kegiatan||''}</textarea></td>
+                            <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f12','${b.k}',${idx},'latar',this.value)">${r.latar||''}</textarea></td>
+                            <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f12','${b.k}',${idx},'tujuan',this.value)">${r.tujuan||''}</textarea></td>
+                            <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f12','${b.k}',${idx},'lokasi',this.value)">${r.lokasi||''}</textarea></td>
+                            <td><textarea class="cell-area text-end" rows="1" oninput="autoGrow(this); updateRowField('f12','${b.k}',${idx},'biaya',this.value)">${r.biaya||''}</textarea></td>
+                            <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f12','${b.k}',${idx},'sumber',this.value)">${r.sumber||''}</textarea></td>
+                            <td><textarea class="cell-area" rows="1" oninput="autoGrow(this); updateRowField('f12','${b.k}',${idx},'jadwal',this.value)">${r.jadwal||''}</textarea></td>
+                            <td class="no-print text-center"><button class="btn btn-xs btn-outline-danger py-0 px-1 btn-del-row" onclick="delTableRow('f12','${b.k}',${idx})">×</button></td>
+                        </tr>
+                    `;
+                });
+                tbody += `
+                    <tr class="fw-bold" style="background:#fff9db;">
+                        <td colspan="5" class="text-end">Sub Total ${b.k}</td>
+                        <td class="text-end" id="f12_sub_${b.k}">0</td>
+                        <td colspan="2">
+                            <button class="btn btn-xs btn-outline-primary py-0 px-2 btn-add-row" onclick="addTableRow('f12','${b.k}',{kegiatan:'',latar:'',tujuan:'',lokasi:'',biaya:'',sumber:'',jadwal:''})">+ Baris ${b.k}</button>
+                        </td>
+                        <td class="no-print"></td>
+                    </tr>
+                `;
+            });
+            tbody += `
+                <tr class="fw-bold" style="background:#d3f9d8;">
+                    <td colspan="5" class="text-end">Total Keseluruhan (A, B, C, D)</td>
+                    <td class="text-end" id="f12_grand">0</td>
+                    <td colspan="2"></td>
+                    <td class="no-print"></td>
+                </tr>
+            `;
+
+            c.innerHTML = `
+                <div class="doc-title"><div>FORMULIR USULAN PROGRAM RT-KU TERBAIK</div></div>
+                <div class="fw-bold">A. IDENTITAS RT</div>
+                <table style="width:100%; margin-bottom:10px;">
+                    <tr><td width="140">RT</td><td width="15">:</td><td><strong class="bind-rt">${g.rt || '....'}</strong></td></tr>
+                    <tr><td>Desa/Kelurahan</td><td>:</td><td><strong class="bind-desa">${g.desa || '................'}</strong></td></tr>
+                    <tr><td>Kecamatan</td><td>:</td><td><strong class="bind-kec">${g.kec || '................'}</strong></td></tr>
+                    <tr><td>Bulan Pelaporan</td><td>:</td><td>${inp('f12', 'bulan', '220px', 'Contoh: November 2026')}</td></tr>
+                </table>
+                <div class="fw-bold">B. USULAN KEGIATAN</div>
+                <div class="table-responsive">
+                    <table class="doc-table" style="font-size:9pt;">
+                        <thead>
+                            <tr>
+                                <th width="35">No.</th>
+                                <th><div class="th-resizable">Nama Kegiatan</div></th>
+                                <th><div class="th-resizable">Latar Belakang Kebutuhan</div></th>
+                                <th><div class="th-resizable">Tujuan Kegiatan</div></th>
+                                <th><div class="th-resizable">Lokasi Kegiatan</div></th>
+                                <th width="115"><div class="th-resizable">Perkiraan Biaya (Rp)</div></th>
+                                <th><div class="th-resizable">Sumber Daya Yang Terlibat</div></th>
+                                <th><div class="th-resizable">Jadwal Pelaksanaan</div></th>
+                                <th class="no-print" width="30"></th>
+                            </tr>
+                        </thead>
+                        <tbody>${tbody}</tbody>
+                    </table>
+                </div>
+                <div class="fw-bold mt-2">C. PERNYATAAN KESANGGUPAN</div>
+                <p>Kami warga RT bersedia melaksanakan kegiatan ini secara bersama-sama dengan partisipasi Masyarakat.</p>
+                <div class="row mt-3">
+                    <div class="col-7"></div>
+                    <div class="col-5 text-center">
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f12', 'tgl_ttd', '150px')}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div style="height:55px;"></div>
+                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                    </div>
+                </div>
+            `;
+            recalcForm12();
+        } else if (activeFormId === 'f16') {
+            c.innerHTML = `
+                ${renderKopHTML()}
+                <div class="text-end mb-2"><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f16', 'tgl_surat', '160px')}</div>
+                <table style="width:100%; margin-bottom:12px;">
+                    <tr><td width="90">Nomor</td><td width="15">:</td><td>${inp('f16', 'nomor', '240px')}</td></tr>
+                    <tr><td>Lampiran</td><td>:</td><td>${inp('f16', 'lampiran', '240px')}</td></tr>
+                    <tr><td>Hal</td><td>:</td><td><strong>Pengajuan Usulan Program RT-KU Terbaik</strong></td></tr>
+                </table>
+                <div class="mb-3">
+                    <div>Yth. <strong>Camat <span class="bind-kec">${g.kec || '................'}</span></strong></div>
+                    <div>di - <br><strong style="padding-left:20px;">Tempat</strong></div>
+                </div>
+                <p style="text-align:justify;">
+                    Bersama ini disampaikan pengajuan berkas usulan kegiatan Program RT-Ku Terbaik tahun ${inp('f16', 'tahun', '70px')} selanjutnya untuk diverifikasi sebagai syarat pencairan dana Program RT-Ku Terbaik tahun ${inp('f16', 'tahun2', '70px')}.
+                </p>
+                <p class="mb-1">Adapun rincian berkas yang disampaikan sebagai berikut:</p>
+                <table class="doc-table">
+                    <thead>
+                        <tr><th width="45">No</th><th>Jenis Dokumen</th><th width="110">Jumlah</th><th width="180">Keterangan</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="text-center">1</td><td>Usulan Program Ketahanan Sosial</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','j1','')}" oninput="setVal('f16','j1',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','k1','')}" oninput="setVal('f16','k1',this.value)"></td></tr>
+                        <tr><td class="text-center">2</td><td>Usulan Program Pemberdayaan Masyarakat</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','j2','')}" oninput="setVal('f16','j2',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','k2','')}" oninput="setVal('f16','k2',this.value)"></td></tr>
+                        <tr><td class="text-center">3</td><td>Usulan Program Infrastruktur</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','j3','')}" oninput="setVal('f16','j3',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','k3','')}" oninput="setVal('f16','k3',this.value)"></td></tr>
+                        <tr><td class="text-center">4</td><td>Usulan Program Operasional</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','j4','')}" oninput="setVal('f16','j4',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','k4','')}" oninput="setVal('f16','k4',this.value)"></td></tr>
+                        <tr><td class="text-center fw-bold">5</td><td colspan="3" class="fw-bold">Data Dukung antara lain:</td></tr>
+                        <tr><td></td><td>1. BA Musyawarah Perencanaan RT</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd1','')}" oninput="setVal('f16','jd1',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd1','')}" oninput="setVal('f16','kd1',this.value)"></td></tr>
+                        <tr><td></td><td>2. Undangan</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd2','')}" oninput="setVal('f16','jd2',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd2','')}" oninput="setVal('f16','kd2',this.value)"></td></tr>
+                        <tr><td></td><td>3. Daftar Hadir</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd3','')}" oninput="setVal('f16','jd3',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd3','')}" oninput="setVal('f16','kd3',this.value)"></td></tr>
+                        <tr><td></td><td>4. Notulen</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd4','')}" oninput="setVal('f16','jd4',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd4','')}" oninput="setVal('f16','kd4',this.value)"></td></tr>
+                        <tr><td></td><td>5. Foto dokumentasi</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd5','')}" oninput="setVal('f16','jd5',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd5','')}" oninput="setVal('f16','kd5',this.value)"></td></tr>
+                        <tr><td></td><td>6. ${inp('f16', 'dok6', '260px')}</td><td><input type="text" class="paper-input text-center" style="width:100%;border:none" value="${getVal('f16','jd6','')}" oninput="setVal('f16','jd6',this.value)"></td><td><input type="text" class="paper-input" style="width:100%;border:none" value="${getVal('f16','kd6','')}" oninput="setVal('f16','kd6',this.value)"></td></tr>
+                    </tbody>
+                </table>
+                <p>Demikian disampaikan, atas perhatiannya diucapkan terima kasih.</p>
+                <div class="row mt-4">
+                    <div class="col-7"></div>
+                    <div class="col-5 text-center">
+                        <div><span class="bind-tempat">${g.tempat || 'Tenggarong'}</span>, ${inp('f16', 'tgl_ttd', '150px')}</div>
+                        <div>Ketua RT <span class="bind-rt">${g.rt || '....'}</span></div>
+                        <div style="height:55px;"></div>
+                        <div class="fw-bold">( <span class="bind-ketua">${g.ketua || '....................................'}</span> )</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    async function exportCurrentExcel() {
+        const wb = new ExcelJS.Workbook();
+        const g = store.global;
+        const border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+
+        if (activeFormId === 'f6') {
+            const ws = wb.addWorksheet('Database Penduduk RT');
+            ws.addRow(['DATABASE PENDUDUK DI WILAYAH RT']).font = { bold: true, size: 12 };
+            ws.addRow(['RT', ':', g.rt]);
+            ws.addRow(['Desa/Kelurahan', ':', g.desa]);
+            ws.addRow(['Kecamatan', ':', g.kec]);
+            ws.addRow([]);
+            const head = ws.addRow(['No.', 'Nama Lengkap', 'NIK', 'No. KK', 'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir', 'Agama', 'Pendidikan', 'Pekerjaan', 'Alamat Lengkap', 'RT', 'Kelurahan/Desa', 'Kecamatan', 'Kabupaten', 'Provinsi']);
+            head.eachCell(c => { c.font = { bold: true }; c.border = border; });
+            (getF('f6').penduduk || []).forEach((p, idx) => {
+                const r = ws.addRow([
+                    idx + 1, p.nama, p.nik, p.kk, p.jk, p.tmpt, p.tgllhr, p.agama, p.pend, p.kerja, p.alamat,
+                    p.rt !== undefined ? p.rt : g.rt,
+                    p.desa !== undefined ? p.desa : g.desa,
+                    p.kec !== undefined ? p.kec : g.kec,
+                    p.kab !== undefined ? p.kab : 'Kutai Kartanegara',
+                    p.prov !== undefined ? p.prov : 'Kalimantan Timur'
+                ]);
+                r.eachCell(c => c.border = border);
+            });
+            const buf = await wb.xlsx.writeBuffer();
+            saveAs(new Blob([buf]), `FORM_6_Database_Penduduk_RT_${g.rt || '00'}.xlsx`);
+        } else if (activeFormId === 'f12') {
+            const ws = wb.addWorksheet('Formulir Usulan Program');
+            ws.addRow(['FORMULIR USULAN PROGRAM RT-KU TERBAIK']).font = { bold: true, size: 12 };
+            ws.addRow(['RT', ':', g.rt]);
+            ws.addRow(['Desa/Kelurahan', ':', g.desa]);
+            ws.addRow(['Kecamatan', ':', g.kec]);
+            ws.addRow(['Bulan Pelaporan', ':', getVal('f12', 'bulan', '')]);
+            ws.addRow([]);
+            const head = ws.addRow(['No.', 'Nama Kegiatan', 'Latar Belakang Kebutuhan', 'Tujuan Kegiatan', 'Lokasi Kegiatan', 'Perkiraan Biaya (Rp)', 'Sumber Daya Yang Terlibat', 'Jadwal Pelaksanaan']);
+            head.eachCell(c => { c.font = { bold: true }; c.border = border; });
+            const d = getF('f12');
+            const subCells = [];
+            [['A','Ketahanan Sosial'],['B','Pemberdayaan Masyarakat'],['C','Infrastruktur'],['D','Operasional RT']].forEach(([k, nm]) => {
+                const rG = ws.addRow([k, nm, '', '', '', '', '', '']);
+                rG.eachCell(c => { c.font = { bold: true }; c.border = border; });
+                const startR = ws.rowCount + 1;
+                (d[k] || []).forEach((it, idx) => {
+                    const numBiaya = parseFloat(String(it.biaya || '0').replace(/[^0-9]/g, '')) || 0;
+                    const r = ws.addRow([idx + 1, it.kegiatan, it.latar, it.tujuan, it.lokasi, numBiaya, it.sumber, it.jadwal]);
+                    r.getCell(6).numFmt = '#,##0';
+                    r.eachCell(c => c.border = border);
+                });
+                const endR = ws.rowCount;
+                const rSub = ws.addRow(['', `Sub Total ${k}`, '', '', '', { formula: `SUM(F${startR}:F${endR})` }, '', '']);
+                rSub.eachCell(c => { c.font = { bold: true }; c.border = border; });
+                rSub.getCell(6).numFmt = '#,##0';
+                subCells.push(`F${rSub.number}`);
+            });
+            const rTot = ws.addRow(['', 'Total Keseluruhan (A, B, C, D)', '', '', '', { formula: subCells.join('+') }, '', '']);
+            rTot.eachCell(c => { c.font = { bold: true }; c.border = border; });
+            rTot.getCell(6).numFmt = '#,##0';
+            const buf = await wb.xlsx.writeBuffer();
+            saveAs(new Blob([buf]), `FORM_12_Usulan_Program_RT_${g.rt || '00'}.xlsx`);
+        }
+    }
+
+    function resetAllData() {
+        if (confirm('Hapus seluruh isian pada ke-13 form dan mulai dari awal?')) {
+            localStorage.removeItem('rtku_13forms_v2');
+            location.reload();
+        }
+    }
+
+    window.addEventListener('beforeprint', autoGrowAllTextareas);
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('g_rt').value = store.global.rt || '';
+        document.getElementById('g_desa').value = store.global.desa || '';
+        document.getElementById('g_alamat').value = store.global.alamat || '';
+        document.getElementById('g_kec').value = store.global.kec || '';
+        document.getElementById('g_tempat').value = store.global.tempat || 'Tenggarong';
+        document.getElementById('g_ketua').value = store.global.ketua || '';
+        document.getElementById('g_sekretaris').value = store.global.sekretaris || '';
+        document.getElementById('g_bendahara').value = store.global.bendahara || '';
+        switchForm('f1');
+    });
+</script>
+</body>
+</html>
