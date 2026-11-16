@@ -396,7 +396,10 @@
             setTimeout(autoGrowAllTextareas, 20);
         }
     }
-
+    function addTableRow(fid, listKey, templateObj) {
+        addArrayItem(fid, listKey, templateObj);
+    }
+    
     function delTableRow(fid, listKey, idx) {
         const d = getF(fid);
         if (Array.isArray(d[listKey])) {
